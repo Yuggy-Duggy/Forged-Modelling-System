@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ForgeStudio 3D — Professional Modelling Suite</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;}
+:root{
+--bg0:#111;--bg1:#1a1a1a;--bg2:#222;--bg3:#2c2c2c;--bg4:#363636;
+--acc:#e36d2f;--acc2:#f5a623;--acca:rgba(227,109,47,.25);
+--t1:#ddd;--t2:#999;--t3:#555;
+--brd:#2a2a2a;--brd2:#404040;
+--inf:#3a8fd4;--ok:#3aad5e;--dn:#d44040;--warn:#d4963a;
+}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px;}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-areas:"mbar mbar mbar""lbar vp rp""sbar sbar sbar";
+  grid-template-rows:26px 1fr 20px;grid-template-columns:42px 1fr 272px;height:100vh;}
+
+/* ── LOADING ── */
+#ld{position:fixed;inset:0;z-index:9999;background:#080808;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;}
+.ld-logo{font-size:26px;font-weight:700;letter-spacing:8px;color:var(--acc);}
+.ld-sub{font-size:9px;letter-spacing:4px;color:var(--t3);}
+.ld-bar{width:200px;height:1px;background:var(--bg3);margin:16px 0 4px;}
+.ld-prog{height:100%;background:var(--acc);width:0;transition:width .3s;}
+.ld-msg{font-size:9px;color:var(--t3);letter-spacing:1px;}
+
+/* ── MENUBAR ── */
+#mbar{grid-area:mbar;background:var(--bg1);border-bottom:1px solid var(--brd);display:flex;
+  align-items:center;padding:0 6px;gap:1px;z-index:200;}
+.logo-txt{color:var(--acc);font-weight:700;font-size:12px;letter-spacing:3px;margin-right:8px;}
+.logo-txt em{color:var(--t3);font-style:normal;font-weight:300;}
+.mnu{background:none;border:none;color:var(--t2);cursor:pointer;padding:2px 8px;border-radius:3px;
+  font:11px 'JetBrains Mono',monospace;position:relative;}
+.mnu:hover,.mnu.open{background:var(--bg3);color:var(--t1);}
+.drop{display:none;position:absolute;top:100%;left:0;min-width:200px;background:#1c1c1c;
+  border:1px solid var(--brd2);border-radius:4px;z-index:9999;padding:2px;
+  box-shadow:0 12px 40px rgba(0,0,0,.8);}
+.drop.vis{display:block;}
+.di{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
+  cursor:pointer;border-radius:3px;gap:20px;color:var(--t1);}
+.di:hover{background:var(--bg4);}
+.dsc{font-size:9px;color:var(--t3);}
+.dsep{height:1px;background:var(--brd);margin:2px 0;}
+.dcat{font-size:8px;letter-spacing:1.5px;color:var(--t3);padding:3px 10px 1px;}
+.mr{margin-left:auto;display:flex;align-items:center;gap:5px;}
+.shade-row{display:flex;background:var(--bg0);border:1px solid var(--brd);border-radius:3px;overflow:hidden;}
+.shb{background:none;border:none;border-right:1px solid var(--brd);color:var(--t3);
+  padding:1px 7px;cursor:pointer;font:10px 'JetBrains Mono',monospace;}
+.shb:last-child{border-right:none;}
+.shb:hover:not(.act){color:var(--t1);background:var(--bg3);}
+.shb.act{background:var(--acc);color:#fff;}
+.phys-tog{padding:1px 8px;border-radius:3px;border:1px solid var(--ok);
+  background:rgba(58,173,94,.1);color:var(--ok);cursor:pointer;
+  font:10px 'JetBrains Mono',monospace;transition:.15s all;}
+.phys-tog.running{border-color:var(--dn);background:rgba(212,64,64,.1);color:var(--dn);}
+
+/* ── LEFT BAR ── */
+#lbar{grid-area:lbar;background:var(--bg1);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;align-items:center;padding:4px 3px;gap:1px;}
+.tb{width:34px;height:34px;background:none;border:none;color:var(--t3);cursor:pointer;
+  border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;
+  position:relative;transition:.12s;}
+.tb:hover{background:var(--bg3);color:var(--t1);}
+.tb.act{background:var(--acc);color:#fff;}
+.tbsep{width:26px;height:1px;background:var(--brd);margin:2px 0;}
+.tb-tip{display:none;position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:#111;color:var(--t1);padding:3px 7px;border-radius:3px;white-space:nowrap;
+  font-size:10px;border:1px solid var(--brd2);z-index:9999;pointer-events:none;}
+.tb:hover .tb-tip{display:block;}
+
+/* ── VIEWPORT ── */
+#vp{grid-area:vp;position:relative;background:#0d0d0d;overflow:hidden;}
+#c3d{width:100%;height:100%;display:block;outline:none;cursor:crosshair;}
+.vp-hud-tl{position:absolute;top:8px;left:8px;display:flex;gap:4px;pointer-events:all;}
+.vp-hud-tr{position:absolute;top:8px;right:8px;text-align:right;pointer-events:none;line-height:1.9;}
+.vp-hud-tr div{font-size:9.5px;color:rgba(200,200,200,.5);}
+.vpb{padding:2px 6px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07);
+  color:var(--t2);cursor:pointer;border-radius:3px;font:10px 'JetBrains Mono',monospace;
+  backdrop-filter:blur(4px);}
+.vpb:hover:not(.act){color:var(--t1);background:rgba(255,255,255,.07);}
+.vpb.act{background:var(--acc);border-color:var(--acc);color:#fff;}
+#gizmo{position:absolute;bottom:10px;right:10px;width:66px;height:66px;pointer-events:none;}
+.vp-selbox{position:absolute;border:1px dashed rgba(100,160,255,.7);
+  background:rgba(100,160,255,.06);pointer-events:none;display:none;}
+
+/* ── RIGHT PANEL ── */
+#rp{grid-area:rp;background:var(--bg1);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;}
+.ptabs{display:flex;background:#161616;border-bottom:1px solid var(--brd);flex-shrink:0;}
+.ptab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);
+  cursor:pointer;font:9px 'JetBrains Mono',monospace;letter-spacing:.3px;padding:4px 2px;
+  transition:.12s;}
+.ptab:hover:not(.act){color:var(--t1);}
+.ptab.act{color:var(--acc);border-bottom-color:var(--acc);}
+.pane{flex:1;overflow-y:auto;padding:7px;display:none;}
+.pane.act{display:block;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+/* ── PANEL COMPONENTS ── */
+.pg{background:var(--bg0);border:1px solid var(--brd);border-radius:4px;margin-bottom:4px;overflow:hidden;}
+.pgh{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;
+  background:var(--bg2);cursor:pointer;font-size:9px;font-weight:600;color:var(--acc);
+  letter-spacing:1px;border-bottom:1px solid var(--brd);}
+.pgh:hover{background:var(--bg3);}
+.pgb{padding:6px 7px;}
+.pgb.coll{display:none;}
+.pr{display:flex;align-items:center;gap:4px;margin:2px 0;}
+.pl{width:68px;font-size:10px;color:var(--t3);flex-shrink:0;white-space:nowrap;}
+.inp{flex:1;background:#0c0c0c;border:1px solid var(--brd);color:var(--t1);padding:2px 4px;
+  border-radius:3px;font:10px 'JetBrains Mono',monospace;outline:none;min-width:0;}
+.inp:focus{border-color:var(--acc);}
+.inp3{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;}
+.inp3 small{display:block;font-size:8px;color:var(--t3);text-align:center;}
+.inp3 .inp{width:100%;}
+.chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer;}
+.sldr{flex:1;accent-color:var(--acc);height:13px;cursor:pointer;}
+.slv{width:30px;text-align:right;color:var(--t3);font-size:9.5px;flex-shrink:0;}
+.clr{flex:1;height:20px;border:1px solid var(--brd);border-radius:3px;cursor:pointer;padding:0;}
+.sel{flex:1;background:#0c0c0c;border:1px solid var(--brd);color:var(--t1);padding:2px 3px;
+  border-radius:3px;font:10px 'JetBrains Mono',monospace;outline:none;}
+.sel:focus{border-color:var(--acc);}
+.btn{width:100%;padding:3px 6px;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);
+  border-radius:3px;cursor:pointer;font:10px 'JetBrains Mono',monospace;text-align:center;
+  margin:1px 0;transition:.12s;}
+.btn:hover{background:var(--bg3);}
+.btn.acc{border-color:var(--acc);color:var(--acc);}
+.btn.acc:hover{background:var(--acc);color:#fff;}
+.btn.ok{border-color:var(--ok);color:var(--ok);}
+.btn.ok:hover{background:var(--ok);color:#fff;}
+.btn.dn{border-color:var(--dn);color:var(--dn);}
+.btn.dn:hover{background:var(--dn);color:#fff;}
+.btn.inf{border-color:var(--inf);color:var(--inf);}
+.btn.inf:hover{background:var(--inf);color:#fff;}
+.btn2g{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.btn3g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;}
+.mat-ball{width:100%;height:72px;border-radius:4px;border:1px solid var(--brd);
+  margin-bottom:7px;background:radial-gradient(circle at 33% 30%,#666,#111);cursor:pointer;}
+.mod-row{display:flex;justify-content:space-between;align-items:center;padding:2px 5px;
+  background:var(--bg2);border-radius:3px;margin:1px 0;font-size:10px;}
+.mod-x{background:none;border:none;color:var(--dn);cursor:pointer;font-size:11px;padding:0 2px;}
+.es{color:var(--t3);text-align:center;padding:16px 8px;font-size:10.5px;line-height:1.9;}
+.ol-row{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:3px;
+  cursor:pointer;margin:1px 0;}
+.ol-row:hover{background:var(--bg3);}
+.ol-row.sel{background:var(--inf) !important;}
+.ol-row.sel .ol-nm{color:#fff;}
+.ol-nm{flex:1;font-size:10.5px;color:var(--t1);}
+.ol-ico{font-size:11px;width:14px;text-align:center;}
+.ol-vis{background:none;border:none;color:var(--t3);cursor:pointer;padding:0 1px;font-size:10px;}
+.ol-row.hid .ol-nm{text-decoration:line-through;opacity:.4;}
+
+/* ── STATUS ── */
+#sbar{grid-area:sbar;background:#161616;border-top:1px solid var(--brd);display:flex;
+  align-items:center;padding:0 8px;gap:12px;font-size:9.5px;color:var(--t3);}
+.sk{display:flex;gap:3px;align-items:center;}
+.ky{background:#111;border:1px solid var(--brd2);border-radius:2px;padding:0 3px;
+  color:var(--t1);font-size:9px;}
+.pi-ind{margin-left:auto;padding:0 7px;border-radius:3px;font-size:9.5px;
+  display:flex;align-items:center;gap:3px;}
+.pi-ind.off{color:var(--ok);border:1px solid rgba(58,173,94,.4);background:rgba(58,173,94,.08);}
+.pi-ind.on{color:var(--dn);border:1px solid rgba(212,64,64,.4);background:rgba(212,64,64,.08);}
+#sb-sel{font-size:9.5px;margin-left:6px;}
+
+/* ── CTX MENU ── */
+#ctx{display:none;position:fixed;background:#1c1c1c;border:1px solid var(--brd2);
+  border-radius:4px;z-index:9999;min-width:168px;padding:2px;box-shadow:0 10px 35px rgba(0,0,0,.8);}
+.cxi{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
+  cursor:pointer;border-radius:3px;gap:18px;color:var(--t1);font-size:10.5px;}
+.cxi:hover{background:var(--bg4);}
+.cxsc{font-size:9px;color:var(--t3);}
+.cxsep{height:1px;background:var(--brd);margin:2px 0;}
+.cxcat{font-size:8px;letter-spacing:1.5px;color:var(--t3);padding:2px 10px;}
+
+/* ── NOTIF ── */
+#notif{display:none;position:fixed;bottom:34px;left:50%;transform:translateX(-50%);
+  background:#1c1c1c;border:1px solid var(--acc);color:var(--t1);padding:4px 14px;
+  border-radius:4px;font-size:10.5px;z-index:9999;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);pointer-events:none;}
+
+/* ── RENDER MODAL ── */
+#rmodal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9990;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+#rmodal.open{display:flex;}
+#rcanvas{border:1px solid var(--brd2);}
+.racts{display:flex;gap:8px;}
+.ract{padding:5px 14px;border:1px solid var(--brd2);background:var(--bg2);color:var(--t1);
+  border-radius:3px;cursor:pointer;font:11px 'JetBrains Mono',monospace;}
+.ract:hover{background:var(--bg3);}
+.ract.ok{border-color:var(--acc);color:var(--acc);}
+.ract.ok:hover{background:var(--acc);color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ld">
+  <div class="ld-logo">⬡ FORGE</div>
+  <div class="ld-sub">STUDIO 3D PROFESSIONAL</div>
+  <div class="ld-bar"><div class="ld-prog" id="ldp"></div></div>
+  <div class="ld-msg" id="ldm">Initialising engine...</div>
+</div>
+
+<div id="app">
+
+<!-- ── MENUBAR ── -->
+<div id="mbar">
+  <span class="logo-txt">FORGE<em>STUDIO</em></span>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-File" onclick="openMenu('File')">File</button>
+    <div class="drop" id="drop-File">
+      <div class="di" onclick="newScene()">New Scene<span class="dsc">Ctrl+N</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="exportOBJ()">Export OBJ</div>
+      <div class="di" onclick="exportScene()">Export HTML</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="renderFull()">Render Image<span class="dsc">F12</span></div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Edit" onclick="openMenu('Edit')">Edit</button>
+    <div class="drop" id="drop-Edit">
+      <div class="di" onclick="undo()">Undo<span class="dsc">Ctrl+Z</span></div>
+      <div class="di" onclick="redo()">Redo<span class="dsc">Ctrl+Y</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="dupSel()">Duplicate<span class="dsc">Shift+D</span></div>
+      <div class="di" onclick="delSel()">Delete<span class="dsc">X</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="selAll()">Select All<span class="dsc">A</span></div>
+      <div class="di" onclick="deselAll()">Deselect All<span class="dsc">Alt+A</span></div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Add" onclick="openMenu('Add')">Add</button>
+    <div class="drop" id="drop-Add" style="min-width:165px">
+      <div class="dcat">MESH</div>
+      <div class="di" onclick="addMesh('cube')">▣ Cube</div>
+      <div class="di" onclick="addMesh('sphere')">● UV Sphere</div>
+      <div class="di" onclick="addMesh('icosphere')">◈ Icosphere</div>
+      <div class="di" onclick="addMesh('cylinder')">⬭ Cylinder</div>
+      <div class="di" onclick="addMesh('plane')">▬ Plane</div>
+      <div class="di" onclick="addMesh('torus')">◎ Torus</div>
+      <div class="di" onclick="addMesh('cone')">△ Cone</div>
+      <div class="di" onclick="addMesh('torus_knot')">∞ Torus Knot</div>
+      <div class="di" onclick="addMesh('lathe')">◗ Lathe</div>
+      <div class="di" onclick="addMesh('monkey')">☺ Monkey</div>
+      <div class="dsep"></div>
+      <div class="dcat">LIGHT</div>
+      <div class="di" onclick="addLight('point')">✦ Point</div>
+      <div class="di" onclick="addLight('spot')">▽ Spot</div>
+      <div class="di" onclick="addLight('sun')">☀ Sun</div>
+      <div class="di" onclick="addLight('area')">▭ Area</div>
+      <div class="di" onclick="addLight('hemi')">◑ Hemisphere</div>
+      <div class="dsep"></div>
+      <div class="dcat">CAMERA</div>
+      <div class="di" onclick="addCamera()">📷 Camera</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Object" onclick="openMenu('Object')">Object</button>
+    <div class="drop" id="drop-Object">
+      <div class="di" onclick="applyMod('subsurf')">Subdivide Surface</div>
+      <div class="di" onclick="applyMod('bevel')">Bevel</div>
+      <div class="di" onclick="applyMod('solidify')">Solidify</div>
+      <div class="di" onclick="applyMod('wireframe')">Wireframe Mod</div>
+      <div class="di" onclick="applyMod('mirror')">Mirror</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="dupSel()">Duplicate<span class="dsc">Shift+D</span></div>
+      <div class="di" onclick="delSel()">Delete<span class="dsc">X</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="applyTransforms()">Apply Transforms</div>
+      <div class="di" onclick="setOriginCenter()">Origin to Center</div>
+      <div class="di" onclick="mirrorX()">Mirror X</div>
+      <div class="di" onclick="mirrorY()">Mirror Y</div>
+      <div class="di" onclick="mirrorZ()">Mirror Z</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togglePhysSel()">Toggle Physics</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-View" onclick="openMenu('View')">View</button>
+    <div class="drop" id="drop-View">
+      <div class="di" onclick="setView('front')">Front<span class="dsc">Num1</span></div>
+      <div class="di" onclick="setView('back')">Back</div>
+      <div class="di" onclick="setView('right')">Right<span class="dsc">Num3</span></div>
+      <div class="di" onclick="setView('left')">Left</div>
+      <div class="di" onclick="setView('top')">Top<span class="dsc">Num7</span></div>
+      <div class="di" onclick="setView('bottom')">Bottom</div>
+      <div class="di" onclick="setView('camera')">Camera<span class="dsc">Num0</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="focusSel()">Focus Selected<span class="dsc">F</span></div>
+      <div class="di" onclick="resetCam()">Reset View<span class="dsc">Home</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togGrid()">Toggle Grid</div>
+      <div class="di" onclick="togAxes()">Toggle Axes</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Render" onclick="openMenu('Render')">Render</button>
+    <div class="drop" id="drop-Render">
+      <div class="di" onclick="renderFull()">Render Image<span class="dsc">F12</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="setRQ('low')">Quality: Low (Fast)</div>
+      <div class="di" onclick="setRQ('med')">Quality: Medium</div>
+      <div class="di" onclick="setRQ('high')">Quality: Ultra</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togShadows()">Toggle Shadows</div>
+      <div class="di" onclick="togFog()">Toggle Fog</div>
+    </div>
+  </div>
+
+  <div class="mr">
+    <div class="shade-row">
+      <button class="shb act" id="shb-solid" onclick="setShade('solid')">◈ Solid</button>
+      <button class="shb" id="shb-wireframe" onclick="setShade('wireframe')">⬡ Wire</button>
+      <button class="shb" id="shb-material" onclick="setShade('material')">◉ Material</button>
+      <button class="shb" id="shb-rendered" onclick="setShade('rendered')">✦ Rendered</button>
+    </div>
+    <button class="phys-tog" id="ptog" onclick="togglePhysics()">⚙ Physics: OFF</button>
+  </div>
+</div>
+
+<!-- ── LEFT TOOLBAR ── -->
+<div id="lbar">
+  <button class="tb act" id="t-select" onclick="setTool('select')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-3.5 6.5z"/></svg>
+    <span class="tb-tip">Select (Q)</span>
+  </button>
+  <button class="tb" id="t-move" onclick="setTool('move')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/><path d="M8 8l-3 4 3 4M16 8l3 4-3 4"/></svg>
+    <span class="tb-tip">Move (G)</span>
+  </button>
+  <button class="tb" id="t-rotate" onclick="setTool('rotate')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+    <span class="tb-tip">Rotate (R)</span>
+  </button>
+  <button class="tb" id="t-scale" onclick="setTool('scale')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h6M3 3v6M21 3h-6M21 3v6M3 21h6M3 21v-6M21 21h-6M21 21v-6"/></svg>
+    <span class="tb-tip">Scale (S)</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" id="t-bind" onclick="setTool('bind')" style="font-size:13px">
+    ⛓
+    <span class="tb-tip">Bind/Tether (B) — click 2 objects</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="addMesh('cube')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    <span class="tb-tip">Add Cube</span>
+  </button>
+  <button class="tb" onclick="addMesh('sphere')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 9 0 010 18M12 3a15 9 0 000 18"/></svg>
+    <span class="tb-tip">Add Sphere</span>
+  </button>
+  <button class="tb" onclick="addMesh('cylinder')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/></svg>
+    <span class="tb-tip">Add Cylinder</span>
+  </button>
+  <button class="tb" onclick="addMesh('torus')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>
+    <span class="tb-tip">Add Torus</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="addLight('point')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span class="tb-tip">Add Light</span>
+  </button>
+  <button class="tb" onclick="focusSel()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+    <span class="tb-tip">Focus (F)</span>
+  </button>
+  <button class="tb" onclick="resetCam()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="tb-tip">Reset View (Home)</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="renderFull()" style="color:var(--acc)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <span class="tb-tip">Render (F12)</span>
+  </button>
+  <div style="flex:1"></div>
+  <button class="tb" onclick="delSel()" style="color:var(--dn)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+    <span class="tb-tip">Delete (X)</span>
+  </button>
+</div>
+
+<!-- ── VIEWPORT ── -->
+<div id="vp">
+  <canvas id="c3d" tabindex="0"></canvas>
+  <div class="vp-hud-tl">
+    <button class="vpb act" id="vpb-solid" onclick="setShade('solid')">Solid</button>
+    <button class="vpb" id="vpb-wireframe" onclick="setShade('wireframe')">Wire</button>
+    <button class="vpb" id="vpb-material" onclick="setShade('material')">Material</button>
+    <button class="vpb" id="vpb-rendered" onclick="setShade('rendered')">Rendered</button>
+  </div>
+  <div class="vp-hud-tr">
+    <div id="hud-fps">60 FPS</div>
+    <div id="hud-verts">Verts: —</div>
+    <div id="hud-sel">No Selection</div>
+    <div id="hud-mode">SOLID</div>
+    <div id="hud-tool">SELECT</div>
+    <div id="hud-rewind" style="font-weight:600;letter-spacing:1px;min-height:14px"></div>
+  </div>
+  <canvas id="gizmo"></canvas>
+  <div class="vp-selbox" id="selbox"></div>
+</div>
+
+<!-- ── RIGHT PANEL ── -->
+<div id="rp">
+  <div class="ptabs">
+    <button class="ptab act" onclick="showPane('scene')">Scene</button>
+    <button class="ptab" onclick="showPane('object')">Object</button>
+    <button class="ptab" onclick="showPane('material')">Shader</button>
+    <button class="ptab" onclick="showPane('physics')">Physics</button>
+    <button class="ptab" onclick="showPane('render')">Render</button>
+  </div>
+
+  <!-- SCENE / OUTLINER -->
+  <div class="pane act" id="pane-scene">
+    <input class="inp" id="ol-q" placeholder="Filter…" oninput="buildOutliner()" style="width:100%;margin-bottom:5px">
+    <div id="ol-list"></div>
+  </div>
+
+  <!-- OBJECT PROPERTIES -->
+  <div class="pane" id="pane-object">
+    <div id="ob-empty" class="es">Select an object<br>to view properties</div>
+    <div id="ob-body" style="display:none">
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ TRANSFORM <span>−</span></div>
+        <div class="pgb">
+          <div class="pr">
+            <span class="pl">Location</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-px" type="number" step=".1" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-py" type="number" step=".1" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-pz" type="number" step=".1" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr">
+            <span class="pl">Rotation°</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-rx" type="number" step="1" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-ry" type="number" step="1" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-rz" type="number" step="1" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr">
+            <span class="pl">Scale</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-sx" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-sy" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-sz" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr"><span class="pl">Name</span><input class="inp" id="ob-name" type="text" onchange="renameObj()"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ VISIBILITY <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Visible</span><input type="checkbox" class="chk" id="ob-vis" checked onchange="setProp('visible',this.checked)"></div>
+          <div class="pr"><span class="pl">Wireframe</span><input type="checkbox" class="chk" id="ob-wire" onchange="setProp('wireframe',this.checked)"></div>
+          <div class="pr"><span class="pl">Cast Shadow</span><input type="checkbox" class="chk" id="ob-shad" checked onchange="setProp('castShadow',this.checked)"></div>
+          <div class="pr"><span class="pl">Recv Shadow</span><input type="checkbox" class="chk" id="ob-rshad" checked onchange="setProp('receiveShadow',this.checked)"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ MODIFIERS <span>−</span></div>
+        <div class="pgb">
+          <div class="btn2g" style="margin-bottom:4px">
+            <button class="btn" onclick="applyMod('subsurf')">+ Subdivide</button>
+            <button class="btn" onclick="applyMod('bevel')">+ Bevel</button>
+            <button class="btn" onclick="applyMod('solidify')">+ Solidify</button>
+            <button class="btn" onclick="applyMod('wireframe')">+ Wireframe</button>
+            <button class="btn" onclick="applyMod('mirror')">+ Mirror</button>
+            <button class="btn" onclick="applyMod('smooth')">+ Smooth</button>
+          </div>
+          <div id="mod-list"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ ACTIONS <span>−</span></div>
+        <div class="pgb">
+          <button class="btn acc" onclick="dupSel()">Duplicate</button>
+          <button class="btn" onclick="applyTransforms()">Apply Transforms</button>
+          <button class="btn" onclick="setOriginCenter()">Origin → Center</button>
+          <button class="btn" onclick="mirrorX()">Mirror X</button>
+          <button class="btn" onclick="mirrorY()">Mirror Y</button>
+          <button class="btn dn" onclick="delSel()">Delete Object</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MATERIAL / SHADER -->
+  <div class="pane" id="pane-material">
+    <div id="mat-empty" class="es">Select a mesh object<br>to edit its shader</div>
+    <div id="mat-body" style="display:none">
+      <div class="mat-ball" id="mat-ball"></div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ BASE <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Color</span><input type="color" class="clr" id="m-col" value="#888888" oninput="updateMat()"></div>
+          <div class="pr"><span class="pl">Type</span>
+            <select class="sel" id="m-type" onchange="updateMat()">
+              <option value="standard">Standard (PBR)</option>
+              <option value="phong">Phong</option>
+              <option value="toon">Toon / Cel</option>
+              <option value="normal">Normal</option>
+              <option value="depth">Depth</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ PBR <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Metalness</span><input type="range" class="sldr" id="m-met" min="0" max="1" step=".01" value="0" oninput="updateMat();$('v-met').textContent=fmtN(this.value)"><span class="slv" id="v-met">0.00</span></div>
+          <div class="pr"><span class="pl">Roughness</span><input type="range" class="sldr" id="m-rgh" min="0" max="1" step=".01" value=".5" oninput="updateMat();$('v-rgh').textContent=fmtN(this.value)"><span class="slv" id="v-rgh">0.50</span></div>
+          <div class="pr"><span class="pl">Opacity</span><input type="range" class="sldr" id="m-opa" min="0" max="1" step=".01" value="1" oninput="updateMat();$('v-opa').textContent=fmtN(this.value)"><span class="slv" id="v-opa">1.00</span></div>
+          <div class="pr"><span class="pl">IOR</span><input type="range" class="sldr" id="m-ior" min="1" max="3" step=".01" value="1.5" oninput="updateMat();$('v-ior').textContent=fmtN(this.value)"><span class="slv" id="v-ior">1.50</span></div>
+          <div class="pr"><span class="pl">Flat Shade</span><input type="checkbox" class="chk" id="m-flat" onchange="updateMat()"></div>
+          <div class="pr"><span class="pl">Double Side</span><input type="checkbox" class="chk" id="m-dbl" onchange="updateMat()"></div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ EMISSION <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Color</span><input type="color" class="clr" id="m-ecol" value="#000000" oninput="updateMat()"></div>
+          <div class="pr"><span class="pl">Intensity</span><input type="range" class="sldr" id="m-eint" min="0" max="10" step=".1" value="0" oninput="updateMat();$('v-eint').textContent=parseFloat(this.value).toFixed(1)"><span class="slv" id="v-eint">0.0</span></div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ PRESETS <span>−</span></div>
+        <div class="pgb btn3g">
+          <button class="btn" onclick="applyPreset('chrome')">Chrome</button>
+          <button class="btn" onclick="applyPreset('gold')">Gold</button>
+          <button class="btn" onclick="applyPreset('glass')">Glass</button>
+          <button class="btn" onclick="applyPreset('copper')">Copper</button>
+          <button class="btn" onclick="applyPreset('rubber')">Rubber</button>
+          <button class="btn" onclick="applyPreset('neon')">Neon</button>
+          <button class="btn" onclick="applyPreset('obsidian')">Obsidian</button>
+          <button class="btn" onclick="applyPreset('plastic')">Plastic</button>
+          <button class="btn" onclick="applyPreset('ceramic')">Ceramic</button>
+          <button class="btn" onclick="applyPreset('hologram')">Hologram</button>
+          <button class="btn" onclick="applyPreset('lava')">Lava</button>
+          <button class="btn" onclick="applyPreset('wood')">Wood</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHYSICS -->
+  <div class="pane" id="pane-physics">
+    <div class="pg">
+      <div class="pgh">▸ WORLD</div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Gravity</span><input type="range" class="sldr" id="ph-grav" min="-40" max="10" step=".1" value="-9.81" oninput="setGravity(this.value);$('v-grav').textContent=parseFloat(this.value).toFixed(2)"><span class="slv" id="v-grav">-9.81</span></div>
+        <div class="pr"><span class="pl">Substeps</span><input class="inp" id="ph-sub" type="number" min="1" max="20" value="4" onchange="physSubs=+this.value"></div>
+        <div class="pr"><span class="pl">Time Scale</span><input type="range" class="sldr" id="ph-ts" min="0" max="3" step=".05" value="1" oninput="physTS=+this.value;$('v-ts').textContent=parseFloat(this.value).toFixed(2)"><span class="slv" id="v-ts">1.00</span></div>
+        <button class="btn ok" onclick="togglePhysics()" style="margin-top:3px">▶ Run Simulation</button>
+        <button class="btn" onclick="resetPhysics()">⏹ Reset All Bodies</button>
+        <button class="btn inf" onclick="launchAll()">⚡ Launch All Objects</button>
+        <div style="height:1px;background:var(--brd);margin:5px 0"></div>
+        <div style="font-size:9px;color:var(--t3);margin-bottom:3px">REWIND — hold <span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 3px;border-radius:2px;color:var(--t1)">[</span> key to scrub backwards in time</div>
+        <button class="btn" id="btn-rewind"
+          onmousedown="startRewind()" onmouseup="endRewind()" onmouseleave="endRewind()"
+          ontouchstart="startRewind()" ontouchend="endRewind()">
+          ⏪ Rewind (hold)
+        </button>
+      </div>
+    </div>
+
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ TETHER / BIND ⛓ <span>−</span></div>
+      <div class="pgb">
+
+        <!-- HOW TO USE -->
+        <div style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:7px 8px;margin-bottom:6px;line-height:1.85;font-size:9.5px;color:var(--t2)">
+          <div style="color:var(--acc);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:4px">HOW TO USE</div>
+          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">1</span> Press <span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1)">B</span> to enter Bind mode</div>
+          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">2</span> Click your <b style="color:var(--acc)">first</b> object — it glows</div>
+          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">3</span> Click your <b style="color:var(--acc)">second</b> object — tether created</div>
+          <div style="margin-top:3px;color:var(--t3)">The two objects are now locked together. When physics runs they move as a connected unit — collide, fall, bounce — all while maintaining their link. The dashed orange line shows the constraint.</div>
+        </div>
+
+        <!-- TETHER SETTINGS -->
+        <div class="pr"><span class="pl">Strength</span>
+          <select class="sel" id="teth-mode" onchange="tetherMode=this.value">
+            <option value="rigid">Rigid (fixed distance)</option>
+            <option value="spring">Spring (elastic pull)</option>
+          </select>
+        </div>
+        <div class="pr"><span class="pl">Max Length</span>
+          <input type="range" class="sldr" id="teth-len" min="0" max="10" step=".1" value="0"
+            oninput="tetherMaxLen=+this.value;$('v-tlen').textContent=this.value==0?'Auto':this.value+'m'">
+          <span class="slv" id="v-tlen">Auto</span>
+        </div>
+
+        <!-- BIND STATUS -->
+        <div id="bind-status" style="font-size:9px;margin:4px 0;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3)">
+          Press B to start binding
+        </div>
+
+        <button class="btn acc" onclick="setTool('bind')">⛓ Bind Tool (B)</button>
+        <button class="btn" onclick="cancelBind()">✕ Cancel Bind</button>
+
+        <!-- ACTIVE TETHERS LIST -->
+        <div style="margin-top:6px;font-size:9px;color:var(--t3);letter-spacing:.5px;font-weight:600">ACTIVE TETHERS</div>
+        <div id="constraint-list" style="margin-top:3px"></div>
+      </div>
+    </div>
+
+    <div class="pg">
+      <div class="pgh">▸ SELECTED BODY</div>
+      <div class="pgb">
+        <div id="ph-empty" class="es" style="padding:8px">Select an object</div>
+        <div id="ph-body" style="display:none">
+          <div class="pr"><span class="pl">Enable</span><input type="checkbox" class="chk" id="ph-en" onchange="updatePhysProps()"></div>
+          <div class="pr"><span class="pl">Type</span>
+            <select class="sel" id="ph-type" onchange="updatePhysProps()">
+              <option value="dynamic">Dynamic</option>
+              <option value="static">Static</option>
+              <option value="kinematic">Kinematic</option>
+            </select>
+          </div>
+          <div class="pr"><span class="pl">Mass (kg)</span><input class="inp" id="ph-mass" type="number" min=".001" step=".1" value="1" onchange="updatePhysProps()"></div>
+          <div class="pr"><span class="pl">Friction</span><input type="range" class="sldr" id="ph-fric" min="0" max="1" step=".01" value=".3" oninput="updatePhysProps();$('v-fric').textContent=fmtN(this.value)"><span class="slv" id="v-fric">0.30</span></div>
+          <div class="pr"><span class="pl">Bounce</span><input type="range" class="sldr" id="ph-rest" min="0" max="1" step=".01" value=".3" oninput="updatePhysProps();$('v-rest').textContent=fmtN(this.value)"><span class="slv" id="v-rest">0.30</span></div>
+          <div class="pr"><span class="pl">Lin Damp</span><input type="range" class="sldr" id="ph-ld" min="0" max="1" step=".01" value=".05" oninput="updatePhysProps();$('v-ld').textContent=fmtN(this.value)"><span class="slv" id="v-ld">0.05</span></div>
+          <div class="pr"><span class="pl">Ang Damp</span><input type="range" class="sldr" id="ph-ad" min="0" max="1" step=".01" value=".05" oninput="updatePhysProps();$('v-ad').textContent=fmtN(this.value)"><span class="slv" id="v-ad">0.05</span></div>
+          <button class="btn acc" style="margin-top:3px" onclick="applyImpulse(0,14,0)">↑ Upward Impulse</button>
+          <button class="btn" onclick="applyImpulse((Math.random()-.5)*10,12+Math.random()*6,(Math.random()-.5)*10)">↗ Random Launch</button>
+          <button class="btn" onclick="applyImpulse(0,-20,0)">↓ Slam Down</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RENDER SETTINGS -->
+  <div class="pane" id="pane-render">
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ OUTPUT <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Width</span><input class="inp" id="r-w" type="number" value="1920"></div>
+        <div class="pr"><span class="pl">Height</span><input class="inp" id="r-h" type="number" value="1080"></div>
+        <div class="pr"><span class="pl">Format</span><select class="sel" id="r-fmt"><option>PNG</option><option>JPEG</option><option>WebP</option></select></div>
+        <div class="pr"><span class="pl">Quality</span><select class="sel" id="r-qual"><option value="low">Low (Fast)</option><option value="med" selected>Medium</option><option value="high">Ultra (Slow)</option></select></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ WORLD LIGHT <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Ambient</span><input type="color" class="clr" id="w-amb" value="#1a1a1a" oninput="updateWorld()"></div>
+        <div class="pr"><span class="pl">Amb Int</span><input type="range" class="sldr" id="w-ai" min="0" max="5" step=".05" value=".3" oninput="updateWorld();$('v-ai').textContent=fmtN(this.value)"><span class="slv" id="v-ai">0.30</span></div>
+        <div class="pr"><span class="pl">BG Color</span><input type="color" class="clr" id="w-bg" value="#111111" oninput="updateWorld()"></div>
+        <div class="pr"><span class="pl">Sun Angle</span><input type="range" class="sldr" id="w-sang" min="0" max="360" step="1" value="45" oninput="updateSun()"><span class="slv" id="v-sang">45°</span></div>
+        <div class="pr"><span class="pl">Sun Elev</span><input type="range" class="sldr" id="w-selv" min="0" max="90" step="1" value="60" oninput="updateSun()"><span class="slv" id="v-selv">60°</span></div>
+        <div class="pr"><span class="pl">Sun Int</span><input type="range" class="sldr" id="w-sint" min="0" max="5" step=".05" value="1.5" oninput="updateSun();$('v-sint').textContent=fmtN(this.value)"><span class="slv" id="v-sint">1.50</span></div>
+        <div class="pr"><span class="pl">Shadows</span><input type="checkbox" class="chk" id="w-shad" checked onchange="togShadows()"></div>
+        <div class="pr"><span class="pl">Fog</span><input type="checkbox" class="chk" id="w-fog" onchange="togFog()"></div>
+        <div class="pr"><span class="pl">Fog Density</span><input type="range" class="sldr" id="w-fogd" min="0" max=".1" step=".001" value=".02" oninput="updateFog()"></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ POST-PROCESS <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Tone Map</span><select class="sel" id="w-tone" onchange="updateTone()"><option>ACES</option><option>Cineon</option><option>Linear</option><option>Reinhard</option></select></div>
+        <div class="pr"><span class="pl">Exposure</span><input type="range" class="sldr" id="w-exp" min="0" max="4" step=".05" value="1" oninput="updateTone();$('v-exp').textContent=fmtN(this.value)"><span class="slv" id="v-exp">1.00</span></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CAMERA <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">FOV</span><input type="range" class="sldr" id="c-fov" min="10" max="160" step="1" value="75" oninput="updateCam();$('v-fov').textContent=this.value+'°'"><span class="slv" id="v-fov">75°</span></div>
+        <div class="pr"><span class="pl">Near</span><input class="inp" id="c-near" type="number" value=".1" step=".01" onchange="updateCam()"></div>
+        <div class="pr"><span class="pl">Far</span><input class="inp" id="c-far" type="number" value="2000" onchange="updateCam()"></div>
+      </div>
+    </div>
+    <button class="btn acc" style="margin-top:5px" onclick="renderFull()">⚡ RENDER IMAGE (F12)</button>
+  </div>
+</div>
+
+<!-- ── STATUS BAR ── -->
+<div id="sbar">
+  <span class="sk"><span class="ky">G</span> Move</span>
+  <span class="sk"><span class="ky">R</span> Rotate</span>
+  <span class="sk"><span class="ky">S</span> Scale</span>
+  <span class="sk"><span class="ky">B</span> Bind</span>
+  <span class="sk"><span class="ky">X</span> Delete</span>
+  <span class="sk"><span class="ky">Shift+D</span> Dupe</span>
+  <span class="sk"><span class="ky">F</span> Focus</span>
+  <span class="sk"><span class="ky">[ hold</span> Rewind</span>
+  <span class="sk"><span class="ky">F12</span> Render</span>
+  <span class="sk"><span class="ky">Tab</span> Shade</span>
+  <span id="sb-sel"></span>
+  <span class="pi-ind off" id="phys-ind">⚙ Simulation OFF</span>
+</div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx">
+  <div class="cxcat">TRANSFORM</div>
+  <div class="cxi" onclick="setTool('move')">Move<span class="cxsc">G</span></div>
+  <div class="cxi" onclick="setTool('rotate')">Rotate<span class="cxsc">R</span></div>
+  <div class="cxi" onclick="setTool('scale')">Scale<span class="cxsc">S</span></div>
+  <div class="cxsep"></div>
+  <div class="cxcat">OBJECT</div>
+  <div class="cxi" onclick="dupSel()">Duplicate<span class="cxsc">Shift+D</span></div>
+  <div class="cxi" onclick="delSel()">Delete<span class="cxsc">X</span></div>
+  <div class="cxsep"></div>
+  <div class="cxcat">MATERIAL</div>
+  <div class="cxi" onclick="showPane('material')">Edit Shader</div>
+  <div class="cxi" onclick="applyPreset('chrome')">→ Chrome</div>
+  <div class="cxi" onclick="applyPreset('gold')">→ Gold</div>
+  <div class="cxi" onclick="applyPreset('neon')">→ Neon</div>
+  <div class="cxi" onclick="applyPreset('glass')">→ Glass</div>
+  <div class="cxsep"></div>
+  <div class="cxcat">PHYSICS</div>
+  <div class="cxi" onclick="togglePhysSel()">Toggle Physics</div>
+  <div class="cxi" onclick="applyImpulse(0,14,0)">Impulse Up</div>
+  <div class="cxsep"></div>
+  <div class="cxi" onclick="focusSel()">Focus<span class="cxsc">F</span></div>
+  <div class="cxi" onclick="setOriginCenter()">Set Origin</div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- RENDER OUTPUT -->
+<div id="rmodal">
+  <div style="color:var(--t3);font-size:9px;letter-spacing:1px">RENDER — FORGE STUDIO 3D PROFESSIONAL</div>
+  <canvas id="rcanvas"></canvas>
+  <div class="racts">
+    <button class="ract ok" onclick="downloadRender()">⬇ Download PNG</button>
+    <button class="ract" onclick="$('rmodal').classList.remove('open')">✕ Close</button>
+  </div>
+</div>
+
+<!-- THREE.JS + CONTROLS + CANNON -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  FORGE STUDIO 3D  ·  Professional Modelling & Physics Engine
+//  Built on Three.js r128 + Cannon.js 0.6.2
+// ═══════════════════════════════════════════════════════════════════════════
+
+const $=id=>document.getElementById(id);
+const fmtN=v=>parseFloat(v).toFixed(2);
+
+// ── CORE STATE ─────────────────────────────────────────────────────────────
+let scene,camera,renderer,orbit,tfCtrl;
+let physWorld, physEnabled=false, physSubs=4, physTS=1;
+let objects=[]; // { id,name,mesh,body,meshType,type,physEnabled,mods,visible }
+let sel=null;   // currently selected THREE.Mesh
+let tool='select', shadeMode='solid';
+let undoStack=[],redoStack=[];
+let oid=0;
+let ambLight,sunLight,hemiLight;
+let gridH,axesH;
+let showGrid=true,showAxes=true;
+let renderDataURL=null;
+let lastT=0,frameN=0,fpsCur=60;
+const RC=new THREE.Raycaster();
+const MV=new THREE.Vector2();
+const swapMats=new WeakMap();
+let dragPosHistory=[];
+
+// ── REWIND SYSTEM ──
+const physTape=new Map();
+const TAPE_MAX=1200;
+let rewindActive=false;
+let rewindHeads=new Map();
+let rewindWasRunning=false;
+
+// ── BIND / TETHER SYSTEM ──
+let physConstraints=[];  // {id,cannon,line,objA,objB,type}
+let bindFirst=null;       // first mesh clicked in bind mode
+let cid=0;
+let tetherMode='rigid';   // 'rigid' | 'spring'
+let tetherMaxLen=0;       // 0 = auto (use current distance)
+
+// ── DRAG VELOCITY TRACKING ──
+
+// ── LOADING ────────────────────────────────────────────────────────────────
+const LDM=['Initialising engine...','Loading physics world...','Building shaders...','Compiling scene graph...','Ready!'];
+let ldStep=0;
+function ldTick(){
+  if(ldStep>=LDM.length-1)return;
+  ldStep++;
+  $('ldp').style.width=(ldStep/(LDM.length-1)*100)+'%';
+  $('ldm').textContent=LDM[ldStep];
+}
+const ldInt=setInterval(()=>{ldTick();if(ldStep>=LDM.length-1){clearInterval(ldInt);setTimeout(hideLd,600);}},380);
+function hideLd(){const el=$('ld');el.style.transition='opacity .5s';el.style.opacity='0';setTimeout(()=>el.remove(),520);}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+function init(){
+  const canvas=$('c3d'), vp=$('vp');
+  const W=vp.clientWidth, H=vp.clientHeight;
+
+  // Scene
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x111111);
+
+  // Camera
+  camera=new THREE.PerspectiveCamera(75,W/H,0.1,2000);
+  camera.position.set(6,5,9);
+  camera.lookAt(0,0,0);
+
+  // Renderer
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.physicallyCorrectLights=true;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+
+  // OrbitControls
+  orbit=new THREE.OrbitControls(camera,canvas);
+  orbit.enableDamping=true;
+  orbit.dampingFactor=.055;
+  orbit.minDistance=.4;
+  orbit.maxDistance=600;
+
+  // TransformControls
+  tfCtrl=new THREE.TransformControls(camera,canvas);
+  tfCtrl.addEventListener('dragging-changed',e=>{
+    orbit.enabled=!e.value;
+    if(e.value){
+      // Drag starting — reset velocity history
+      dragPosHistory=[];
+    } else {
+      // Drag ending — if physics is on, apply estimated throw velocity so object falls
+      if(sel&&physEnabled){
+        const o=findO(sel);
+        if(o&&o.body&&o.type==='mesh'){
+          // Auto-enable physics so it falls from wherever it was dropped
+          if(!o.physEnabled){
+            o.physEnabled=true;
+            try{physWorld.addBody(o.body);}catch(ex){}
+            $('ph-en').checked=true;
+          }
+          // Sync body position to mesh (where user dragged it)
+          o.body.position.set(sel.position.x,sel.position.y,sel.position.z);
+          o.body.quaternion.set(sel.quaternion.x,sel.quaternion.y,sel.quaternion.z,sel.quaternion.w);
+          // Estimate velocity from recorded position history
+          if(dragPosHistory.length>=2){
+            const p0=dragPosHistory[0], p1=dragPosHistory[dragPosHistory.length-1];
+            const dtD=(p1.t-p0.t)/1000;
+            if(dtD>0.008){
+              o.body.velocity.set(
+                (p1.x-p0.x)/dtD*0.85,
+                (p1.y-p0.y)/dtD*0.85,
+                (p1.z-p0.z)/dtD*0.85
+              );
+            }
+          }
+          o.body.wakeUp();
+          physTape.delete(o.id); // fresh tape from new position
+        }
+      }
+      dragPosHistory=[];
+    }
+  });
+  tfCtrl.addEventListener('objectChange',()=>{
+    syncTFInputs();
+    if(sel){
+      const o=findO(sel);
+      if(o&&o.body&&o.physEnabled){
+        // Track position for velocity estimation (physics drop)
+        dragPosHistory.push({x:sel.position.x,y:sel.position.y,z:sel.position.z,t:performance.now()});
+        if(dragPosHistory.length>8)dragPosHistory.shift();
+        // Keep physics body synced to mesh while dragging
+        o.body.position.set(sel.position.x,sel.position.y,sel.position.z);
+        o.body.quaternion.set(sel.quaternion.x,sel.quaternion.y,sel.quaternion.z,sel.quaternion.w);
+      }
+      if(sel.userData.isLight)sel.userData.lightRef.position.copy(sel.position);
+    }
+  });
+  scene.add(tfCtrl);
+
+  // Lights
+  ambLight=new THREE.AmbientLight(0x1a1a1a,.3);
+  scene.add(ambLight);
+
+  sunLight=new THREE.DirectionalLight(0xffffff,1.5);
+  sunLight.position.set(8,15,8);
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(2048,2048);
+  sunLight.shadow.camera.left=-30;sunLight.shadow.camera.right=30;
+  sunLight.shadow.camera.top=30;sunLight.shadow.camera.bottom=-30;
+  sunLight.shadow.camera.near=.5;sunLight.shadow.camera.far=200;
+  sunLight.shadow.bias=-.0004;
+  scene.add(sunLight);
+
+  hemiLight=new THREE.HemisphereLight(0x8cb2d4,0x2c3a24,.45);
+  scene.add(hemiLight);
+
+  // Grid & Axes
+  gridH=new THREE.GridHelper(40,40,0x2a2a2a,0x1e1e1e);
+  gridH.position.y=-.001;
+  scene.add(gridH);
+  axesH=new THREE.AxesHelper(2);
+  scene.add(axesH);
+
+  // Physics world
+  physWorld=new CANNON.World();
+  physWorld.gravity.set(0,-9.81,0);
+  physWorld.broadphase=new CANNON.SAPBroadphase(physWorld);
+  physWorld.solver.iterations=20;
+  physWorld.allowSleep=true;
+
+  // Ground plane
+  const gBody=new CANNON.Body({mass:0,shape:new CANNON.Plane()});
+  gBody.quaternion.setFromEuler(-Math.PI/2,0,0);
+  physWorld.addBody(gBody);
+  const gMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(40,40),
+    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.9,metalness:0})
+  );
+  gMesh.rotation.x=-Math.PI/2;
+  gMesh.receiveShadow=true;
+  gMesh.name='__ground';
+  scene.add(gMesh);
+
+  // Gizmo
+  initGizmo();
+
+  // Events
+  new ResizeObserver(onResize).observe(vp);
+  canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(sel)showCtx(e.clientX,e.clientY);});
+
+  // ── SELECTION via native click event ──────────────────────────────────────
+  // The browser only fires 'click' on a genuine click (not a drag).
+  // TransformControls captures pointer events during gizmo drags which
+  // prevents click from firing — so we get drag/click separation for free.
+  canvas.addEventListener('click', onCanvasClick);
+
+  // Document-level: close menus and context menu on any outside click
+  document.addEventListener('mousedown',e=>{
+    if(!e.target.closest('.drop')&&!e.target.classList.contains('mnu'))closeMenus();
+    if(!e.target.closest('#ctx'))$('ctx').style.display='none';
+  });
+  document.addEventListener('keydown',onKD);
+  document.addEventListener('keyup',onKU);
+
+  // Default scene
+  defaultScene();
+  animate();
+  notify('ForgeStudio 3D ready ⬡');
+}
+
+function defaultScene(){
+  addMesh('cube',true);
+  const o=objects[objects.length-1];
+  o.mesh.position.set(0,0.6,0);
+  syncTFInputs();
+  applyPreset('chrome',false);
+  notify('');
+}
+
+// ── ANIMATION LOOP ─────────────────────────────────────────────────────────
+function animate(t=0){
+  requestAnimationFrame(animate);
+  const dt=Math.min((t-lastT)/1000,.05);
+  lastT=t;
+
+  frameN++;
+  if(frameN%20===0){fpsCur=Math.round(1/(dt||.016));$('hud-fps').textContent=fpsCur+' FPS';}
+
+  if(rewindActive){
+    // ── REWIND: step all taped objects backwards ──
+    let anyLeft=false;
+    objects.forEach(o=>{
+      if(!o.physEnabled||!o.body)return;
+      const tape=physTape.get(o.id);
+      if(!tape||!tape.length)return;
+      let head=rewindHeads.get(o.id)??tape.length-1;
+      // step back 2 frames per render frame for 2× rewind speed
+      head=Math.max(0,head-2);
+      rewindHeads.set(o.id,head);
+      const f=tape[head];
+      if(f){
+        o.mesh.position.set(f.px,f.py,f.pz);
+        o.mesh.quaternion.set(f.qx,f.qy,f.qz,f.qw);
+      }
+      if(head>0)anyLeft=true;
+    });
+    updateRewindHUD(true);
+    if(!anyLeft){
+      // Reached the beginning — stop rewinding automatically
+      endRewind();
+    }
+  } else if(physEnabled&&dt>0){
+    // ── FORWARD SIMULATION: step + record ──
+    physWorld.step(1/60,dt*physTS,physSubs);
+    objects.forEach(o=>{
+      if(!o.physEnabled||!o.body)return;
+      bodyToMesh(o);
+      let tape=physTape.get(o.id);
+      if(!tape){tape=[];physTape.set(o.id,tape);}
+      tape.push({
+        px:o.mesh.position.x,py:o.mesh.position.y,pz:o.mesh.position.z,
+        qx:o.mesh.quaternion.x,qy:o.mesh.quaternion.y,qz:o.mesh.quaternion.z,qw:o.mesh.quaternion.w
+      });
+      if(tape.length>TAPE_MAX)tape.shift();
+    });
+    updateRewindHUD(false);
+  }
+
+  // ── ALWAYS: update tether lines ──
+  physConstraints.forEach(c=>{
+    if(!c.objA.mesh||!c.objB.mesh)return;
+    const pts=[c.objA.mesh.position.clone(),c.objB.mesh.position.clone()];
+    c.line.geometry.setFromPoints(pts);
+    c.line.geometry.attributes.position.needsUpdate=true;
+  });
+
+  orbit.update();
+  drawGizmo();
+  renderer.render(scene,camera);
+  updateHUD();
+}
+
+// ── PHYSICS ────────────────────────────────────────────────────────────────
+function makeBody(meshType,mesh){
+  const s=mesh.scale;
+  let shape;
+  switch(meshType){
+    case 'sphere':case'icosphere':shape=new CANNON.Sphere(.72*Math.max(s.x,s.y,s.z));break;
+    case 'cylinder':shape=new CANNON.Cylinder(.48*s.x,.48*s.x,.98*s.y,20);break;
+    case 'cone':shape=new CANNON.Cylinder(.01,.48*s.x,.98*s.y,20);break;
+    case 'torus':case'torus_knot':case'lathe':shape=new CANNON.Sphere(.6*Math.max(s.x,s.y));break;
+    default:shape=new CANNON.Box(new CANNON.Vec3(.48*s.x,.48*s.y,.48*s.z));
+  }
+  const b=new CANNON.Body({mass:1,shape});
+  b.position.copy(mesh.position);
+  b.quaternion.set(mesh.quaternion.x,mesh.quaternion.y,mesh.quaternion.z,mesh.quaternion.w);
+  b.linearDamping=.05;b.angularDamping=.05;
+  return b;
+}
+
+function meshToBody(o){
+  o.body.position.set(o.mesh.position.x,o.mesh.position.y,o.mesh.position.z);
+  o.body.quaternion.set(o.mesh.quaternion.x,o.mesh.quaternion.y,o.mesh.quaternion.z,o.mesh.quaternion.w);
+  o.body.velocity.setZero();o.body.angularVelocity.setZero();
+  o.body.wakeUp();
+}
+function bodyToMesh(o){
+  const p=o.body.position,q=o.body.quaternion;
+  o.mesh.position.set(p.x,p.y,p.z);
+  o.mesh.quaternion.set(q.x,q.y,q.z,q.w);
+}
+
+function togglePhysics(){
+  physEnabled=!physEnabled;
+  $('ptog').textContent='⚙ Physics: '+(physEnabled?'ON':'OFF');
+  $('ptog').className='phys-tog'+(physEnabled?' running':'');
+  $('phys-ind').textContent='⚙ Simulation '+(physEnabled?'RUNNING':'OFF');
+  $('phys-ind').className='pi-ind '+(physEnabled?'on':'off');
+  if(physEnabled){
+    objects.forEach(o=>{
+      if(o.physEnabled&&o.body){
+        try{physWorld.addBody(o.body);}catch(e){}
+        meshToBody(o);
+      }
+    });
+    notify('Physics simulation running!');
+  } else notify('Physics paused');
+}
+
+function resetPhysics(){
+  physEnabled=false;$('ptog').textContent='⚙ Physics: OFF';$('ptog').className='phys-tog';
+  $('phys-ind').textContent='⚙ Simulation OFF';$('phys-ind').className='pi-ind off';
+  [...physWorld.bodies].forEach(b=>{if(b.mass>0)try{physWorld.removeBody(b);}catch(e){}}); 
+  objects.forEach(o=>{o.physEnabled=false;});
+  physTape.clear();rewindHeads.clear();
+  removeAllBinds();cancelBind();
+  notify('Physics reset');
+}
+
+// ── REWIND CONTROLS ──────────────────────────────────────────────────────────
+function startRewind(){
+  // Need at least some tape to rewind
+  let hasTape=false;
+  objects.forEach(o=>{const t=physTape.get(o.id);if(t&&t.length>4)hasTape=true;});
+  if(!hasTape){notify('Nothing to rewind — run simulation first');return;}
+  if(rewindActive)return;
+  rewindActive=true;
+  rewindWasRunning=physEnabled;
+  // Pause simulation while rewinding
+  if(physEnabled){
+    physEnabled=false;
+    $('ptog').textContent='⚙ Physics: OFF';$('ptog').className='phys-tog';
+    $('phys-ind').textContent='⏪ REWINDING';$('phys-ind').className='pi-ind on';
+  }
+  // Set each head to the end of its tape
+  objects.forEach(o=>{
+    const tape=physTape.get(o.id);
+    if(tape&&tape.length)rewindHeads.set(o.id,tape.length-1);
+  });
+  notify('⏪ Rewinding… release [ to stop');
+}
+
+function endRewind(){
+  if(!rewindActive)return;
+  rewindActive=false;
+  // Sync physics bodies to rewound mesh positions so simulation
+  // resumes cleanly from wherever the rewind stopped
+  objects.forEach(o=>{
+    if(o.physEnabled&&o.body)meshToBody(o);
+  });
+  // Restore physics state
+  if(rewindWasRunning){
+    physEnabled=true;
+    $('ptog').textContent='⚙ Physics: ON';$('ptog').className='phys-tog running';
+    $('phys-ind').textContent='⚙ Simulation RUNNING';$('phys-ind').className='pi-ind on';
+    // Trim tape from this new point so future rewind works from here
+    objects.forEach(o=>{
+      const head=rewindHeads.get(o.id)??0;
+      const tape=physTape.get(o.id);
+      if(tape)physTape.set(o.id,tape.slice(0,head+1));
+    });
+  } else {
+    $('phys-ind').textContent='⚙ Simulation OFF';$('phys-ind').className='pi-ind off';
+  }
+  updateRewindHUD(false);
+  notify('Rewind stopped');
+}
+
+function updateRewindHUD(rewinding){
+  const el=$('hud-rewind');
+  if(!el)return;
+  if(rewinding){
+    // Show progress as average of all heads
+    let total=0,heads=0;
+    objects.forEach(o=>{
+      const tape=physTape.get(o.id);
+      if(!tape||!tape.length)return;
+      total+=(rewindHeads.get(o.id)??0)/tape.length;
+      heads++;
+    });
+    const pct=heads?Math.round((total/heads)*100):0;
+    el.textContent='⏪ REWIND '+pct+'%';
+    el.style.color='var(--warn)';
+  } else {
+    el.textContent='';
+  }
+}
+
+function setGravity(v){physWorld.gravity.set(0,parseFloat(v),0);}
+
+function updatePhysProps(){
+  if(!sel)return;
+  const o=findO(sel);if(!o||!o.body)return;
+  o.physEnabled=$('ph-en').checked;
+  const type=$('ph-type').value;
+  o.body.mass=type==='static'?0:parseFloat($('ph-mass').value)||1;
+  o.body.linearDamping=parseFloat($('ph-ld').value);
+  o.body.angularDamping=parseFloat($('ph-ad').value);
+  o.body.updateMassProperties();
+}
+
+function launchAll(){
+  if(!physEnabled)togglePhysics();
+  objects.forEach(o=>{
+    if(o.type==='mesh'&&o.body){
+      o.physEnabled=true;
+      try{physWorld.addBody(o.body);}catch(e){}
+      meshToBody(o);
+      o.body.applyImpulse(new CANNON.Vec3((Math.random()-.5)*8,12+Math.random()*10,(Math.random()-.5)*8),o.body.position);
+    }
+  });
+  notify('⚡ Launched all objects!');
+}
+
+function togglePhysSel(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  o.physEnabled=!o.physEnabled;
+  $('ph-en').checked=o.physEnabled;
+  if(o.physEnabled){
+    if(physEnabled){try{physWorld.addBody(o.body);}catch(e){}meshToBody(o);}
+    notify('Physics ON: '+o.name);
+  } else {
+    try{physWorld.removeBody(o.body);}catch(e){}
+    notify('Physics OFF: '+o.name);
+  }
+  refreshPhysPane();
+}
+
+function applyImpulse(ix,iy,iz){
+  if(!sel)return;
+  const o=findO(sel);if(!o||!o.body)return;
+  if(!o.physEnabled){o.physEnabled=true;$('ph-en').checked=true;}
+  if(!physEnabled)togglePhysics();
+  try{physWorld.addBody(o.body);}catch(e){}
+  meshToBody(o);
+  o.body.applyImpulse(new CANNON.Vec3(ix,iy,iz),o.body.position);
+  notify('Impulse applied!');
+}
+
+// ── BIND / TETHER ─────────────────────────────────────────────────────────
+function setBindStatus(msg,state='info'){
+  const el=$('bind-status');if(!el)return;
+  const cols={info:'var(--t2)',ok:'var(--ok)',warn:'var(--warn)',err:'var(--dn)'};
+  el.textContent=msg;el.style.color=cols[state]||cols.info;
+}
+
+function cancelBind(){
+  if(bindFirst){unhilite(bindFirst);bindFirst=null;}
+  setBindStatus('Press B to start binding');
+}
+
+function createBind(meshA,meshB){
+  const oA=findO(meshA),oB=findO(meshB);
+  if(!oA||!oB||oA.type!=='mesh'||oB.type!=='mesh'){
+    notify('Both must be mesh objects');cancelBind();return;
+  }
+
+  // Auto-enable physics on both so the constraint has bodies to work with
+  [oA,oB].forEach(o=>{
+    if(!o.physEnabled){
+      o.physEnabled=true;
+      try{physWorld.addBody(o.body);}catch(e){}
+      meshToBody(o);
+    }
+  });
+  if(!physEnabled)togglePhysics();
+
+  // Current distance between the two objects
+  const dist=meshA.position.distanceTo(meshB.position);
+  const constraintDist=tetherMaxLen>0?tetherMaxLen:dist;
+
+  let cannon;
+  if(tetherMode==='spring'){
+    // Spring: DistanceConstraint lets them stretch and bounce back
+    cannon=new CANNON.DistanceConstraint(oA.body,oB.body,constraintDist,1e4);
+  } else {
+    // Rigid: PointToPointConstraint locks them at their current centres
+    cannon=new CANNON.PointToPointConstraint(
+      oA.body,new CANNON.Vec3(0,0,0),
+      oB.body,new CANNON.Vec3(0,0,0)
+    );
+  }
+  physWorld.addConstraint(cannon);
+
+  // Visual dashed tether line
+  const geo=new THREE.BufferGeometry().setFromPoints([meshA.position.clone(),meshB.position.clone()]);
+  const lineMat=new THREE.LineDashedMaterial({
+    color:tetherMode==='spring'?0x00aaff:0xff8800,
+    dashSize:.16,gapSize:.08,linewidth:1
+  });
+  const line=new THREE.Line(geo,lineMat);
+  line.computeLineDistances();
+  scene.add(line);
+
+  cid++;
+  physConstraints.push({id:cid,cannon,line,objA:oA,objB:oB,mode:tetherMode,dist:constraintDist});
+  buildConstraintList();
+  notify(`⛓ Tethered (${tetherMode}): ${oA.name.split('.')[0]} ↔ ${oB.name.split('.')[0]}`);
+}
+
+function removeBind(id){
+  const idx=physConstraints.findIndex(c=>c.id===id);if(idx<0)return;
+  const c=physConstraints[idx];
+  try{physWorld.removeConstraint(c.cannon);}catch(e){}
+  scene.remove(c.line);c.line.geometry.dispose();c.line.material.dispose();
+  physConstraints.splice(idx,1);
+  buildConstraintList();
+  notify('Tether removed');
+}
+
+function removeAllBinds(){
+  [...physConstraints].forEach(c=>{
+    try{physWorld.removeConstraint(c.cannon);}catch(e){}
+    scene.remove(c.line);c.line.geometry.dispose();c.line.material.dispose();
+  });
+  physConstraints=[];buildConstraintList();notify('All tethers removed');
+}
+
+function buildConstraintList(){
+  const el=$('constraint-list');if(!el)return;
+  if(!physConstraints.length){
+    el.innerHTML='<div style="font-size:9px;color:var(--t3);padding:3px 0">No active tethers</div>';
+    return;
+  }
+  el.innerHTML=physConstraints.map(c=>`
+    <div class="mod-row" style="margin-top:2px;gap:4px">
+      <span style="width:10px;height:10px;border-radius:50%;background:${c.mode==='spring'?'#00aaff':'#ff8800'};flex-shrink:0;display:inline-block"></span>
+      <span style="font-size:9px;color:var(--t1);flex:1">${c.objA.name.split('.')[0]} ↔ ${c.objB.name.split('.')[0]}</span>
+      <span style="font-size:8px;color:var(--t3)">${c.mode}</span>
+      <button class="mod-x" onclick="removeBind(${c.id})" title="Remove">✕</button>
+    </div>`).join('')+
+    `<button class="btn dn" style="margin-top:4px;font-size:9px" onclick="removeAllBinds()">Remove All</button>`;
+}
+
+// ── MESH CREATION ──────────────────────────────────────────────────────────
+function addMesh(type,silent=false){
+  closeMenus();
+  let geo;
+  switch(type){
+    case 'cube':geo=new THREE.BoxGeometry(1,1,1);break;
+    case 'sphere':geo=new THREE.SphereGeometry(.75,32,32);break;
+    case 'icosphere':geo=new THREE.IcosahedronGeometry(.75,4);break;
+    case 'cylinder':geo=new THREE.CylinderGeometry(.5,.5,1,32);break;
+    case 'plane':geo=new THREE.PlaneGeometry(2,2,4,4);break;
+    case 'torus':geo=new THREE.TorusGeometry(.55,.22,20,48);break;
+    case 'torus_knot':geo=new THREE.TorusKnotGeometry(.5,.18,120,20);break;
+    case 'cone':geo=new THREE.ConeGeometry(.55,1,32);break;
+    case 'lathe':
+      const pts=[];for(let i=0;i<8;i++){const t=i/7;pts.push(new THREE.Vector2((.4+.3*Math.sin(t*Math.PI*2))*Math.abs(Math.sin(t*Math.PI)),t*.9));}
+      geo=new THREE.LatheGeometry(pts,24);break;
+    case 'monkey':geo=new THREE.IcosahedronGeometry(.7,3);break;
+    default:geo=new THREE.BoxGeometry(1,1,1);
+  }
+  const mat=new THREE.MeshStandardMaterial({color:rndColor(),roughness:.5,metalness:0});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.position.set((Math.random()-.5)*1.5,.65,(Math.random()-.5)*1.5);
+  oid++;
+  const label=type.charAt(0).toUpperCase()+type.slice(1).replace('_',' ');
+  mesh.name=`${label}.${String(oid).padStart(3,'0')}`;
+  scene.add(mesh);
+  const body=makeBody(type,mesh);
+  const obj={id:oid,name:mesh.name,mesh,body,meshType:type,type:'mesh',physEnabled:false,mods:[],visible:true};
+  objects.push(obj);
+  pushUndo({a:'add',id:oid});
+  if(!silent)notify('Added '+label);
+  select(mesh);
+  buildOutliner();
+  return obj;
+}
+
+// ── LIGHTS ─────────────────────────────────────────────────────────────────
+function addLight(type){
+  closeMenus();
+  let light;
+  switch(type){
+    case 'point':light=new THREE.PointLight(0xffeedd,1.5,25,2);light.castShadow=true;break;
+    case 'spot':light=new THREE.SpotLight(0xffffff,2,35,Math.PI/7,.25,2);light.castShadow=true;break;
+    case 'sun':light=new THREE.DirectionalLight(0xfff8e0,1.2);light.castShadow=true;break;
+    case 'area':light=new THREE.RectAreaLight(0xffffff,5,2,2);break;
+    case 'hemi':light=new THREE.HemisphereLight(0x6699ff,0x553322,.8);break;
+  }
+  light.position.set(0,4,0);
+  scene.add(light);
+  const mkGeo=new THREE.OctahedronGeometry(.1,0);
+  const mkMat=new THREE.MeshBasicMaterial({color:0xffee00,wireframe:true});
+  const mk=new THREE.Mesh(mkGeo,mkMat);
+  mk.position.copy(light.position);
+  mk.userData.isLight=true;mk.userData.lightRef=light;
+  scene.add(mk);
+  oid++;
+  const lbl=type.charAt(0).toUpperCase()+type.slice(1)+' Light';
+  mk.name=lbl+'.'+String(oid).padStart(3,'0');
+  const obj={id:oid,name:mk.name,mesh:mk,light,type:'light',lightType:type,visible:true};
+  objects.push(obj);
+  select(mk);buildOutliner();
+  notify('Added '+lbl);
+}
+
+function addCamera(){
+  closeMenus();notify('Camera object added (use Num0 for camera view)');
+}
+
+function rndColor(){
+  const h=[.02,.07,.13,.53,.6,.67,.83,.9][Math.floor(Math.random()*8)];
+  return new THREE.Color().setHSL(h,.7,.5);
+}
+
+// ── SELECTION ──────────────────────────────────────────────────────────────
+function onCanvasClick(e){
+  const canvas=$('c3d');
+  const r=canvas.getBoundingClientRect();
+  MV.x=((e.clientX-r.left)/r.width)*2-1;
+  MV.y=-((e.clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+
+  // ── BIND MODE ──
+  if(tool==='bind'){
+    if(!hits.length){
+      setBindStatus('No object there — click directly on a mesh','warn');
+      return;
+    }
+    const clicked=hits[0].object;
+    if(!bindFirst){
+      bindFirst=clicked;
+      select(clicked);
+      setBindStatus('✓ First object selected — now click the second','ok');
+    } else if(clicked!==bindFirst){
+      createBind(bindFirst,clicked);
+      bindFirst=null;
+      setBindStatus('⛓ Tether created! Press B for another','ok');
+      setTimeout(()=>setTool('select'),250);
+    } else {
+      setBindStatus('Same object — click a different one','warn');
+    }
+    return;
+  }
+
+  // ── NORMAL SELECT ──
+  if(hits.length){
+    select(hits[0].object);
+  } else {
+    deselect();
+  }
+}
+
+function select(mesh){
+  if(sel&&sel!==mesh)unhilite(sel);
+  sel=mesh;
+  hilite(mesh);
+  if(tool!=='select'){
+    tfCtrl.attach(mesh);
+    tfCtrl.setMode(tool==='move'?'translate':tool==='rotate'?'rotate':'scale');
+  } else tfCtrl.detach();
+  refreshPropsPane();
+  buildOutliner();
+  const o=findO(mesh);
+  $('hud-sel').textContent=o?o.name:'?';
+  $('sb-sel').textContent=o?'[ '+o.name+' ]':'';
+}
+
+function deselect(){
+  if(sel)unhilite(sel);
+  sel=null;
+  tfCtrl.detach();
+  refreshPropsPane();
+  buildOutliner();
+  $('hud-sel').textContent='No Selection';
+  $('sb-sel').textContent='';
+}
+
+function selAll(){if(objects.length)select(objects[0].mesh);}
+function deselAll(){deselect();}
+
+function hilite(m){
+  if(!m.material||!m.material.emissive)return;
+  m.userData._oe=m.material.emissive.getHex();
+  m.userData._oei=m.material.emissiveIntensity||0;
+  m.material.emissive.setHex(0x0d2a5e);
+  m.material.emissiveIntensity=.5;
+}
+function unhilite(m){
+  if(!m.material||!m.material.emissive)return;
+  m.material.emissive.setHex(m.userData._oe||0);
+  m.material.emissiveIntensity=m.userData._oei||0;
+}
+
+// ── TOOLS ──────────────────────────────────────────────────────────────────
+function setTool(t){
+  document.querySelectorAll('.tb[id^="t-"]').forEach(b=>b.classList.remove('act'));
+  $('t-'+t)?.classList.add('act');
+  const prevTool=tool;
+  tool=t;
+  if(prevTool==='bind'&&t!=='bind'){cancelBind();}
+  if(t==='select'||t==='bind'){
+    tfCtrl.detach();
+  } else if(sel){
+    tfCtrl.attach(sel);
+    tfCtrl.setMode(t==='move'?'translate':t==='rotate'?'rotate':'scale');
+  }
+  const hints={select:'SELECT',move:'MOVE (G)',rotate:'ROTATE (R)',scale:'SCALE (S)',
+    bind:'BIND ⛓ — click object 1, then object 2'};
+  $('hud-tool').textContent=hints[t]||t.toUpperCase();
+  $('c3d').focus();
+}
+
+// ── KEYBOARD ───────────────────────────────────────────────────────────────
+function onKD(e){
+  const tag=e.target.tagName.toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea')return;
+  switch(e.key){
+    case 'g':case'G':setTool('move');break;
+    case 'r':case'R':setTool('rotate');break;
+    case 's':if(!e.ctrlKey)setTool('scale');break;
+    case 'q':case'Q':setTool('select');break;
+    case 'x':case'X':case'Delete':if(!e.ctrlKey)delSel();break;
+    case 'z':if(e.ctrlKey){e.preventDefault();e.shiftKey?doRedo():doUndo();}break;
+    case 'y':if(e.ctrlKey){e.preventDefault();doRedo();}break;
+    case 'D':if(e.shiftKey){e.preventDefault();dupSel();}break;
+    case 'a':case'A':if(!e.ctrlKey){e.altKey?deselAll():selAll();}break;
+    case 'f':case'F':if(!e.ctrlKey)focusSel();break;
+    case 'F12':e.preventDefault();renderFull();break;
+    case 'Home':resetCam();break;
+    case 'Escape':deselect();setTool('select');if(rewindActive)endRewind();break;
+    case '1':setView('front');break;
+    case '3':setView('right');break;
+    case '7':setView('top');break;
+    case '0':setView('camera');break;
+    case 'Tab':
+      e.preventDefault();
+      const modes=['solid','wireframe','material','rendered'];
+      setShade(modes[(modes.indexOf(shadeMode)+1)%4]);break;
+    case 'b':case'B':setTool('bind');showPane('physics');break;
+    case '[':startRewind();break;
+  }
+}
+function onKU(e){
+  if(e.key==='[')endRewind();
+}
+
+// ── OBJECT OPS ─────────────────────────────────────────────────────────────
+function findO(mesh){return objects.find(o=>o.mesh===mesh);}
+
+function delSel(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  pushUndo({a:'del',name:o.name});
+  scene.remove(sel);
+  if(o.light)scene.remove(o.light);
+  if(o.body)try{physWorld.removeBody(o.body);}catch(e){}
+  objects=objects.filter(x=>x!==o);
+  deselect();buildOutliner();
+  notify('Deleted '+o.name);
+}
+
+function dupSel(){
+  closeMenus();
+  if(!sel)return;
+  const o=findO(sel);if(!o||o.type!=='mesh')return;
+  const m2=new THREE.Mesh(sel.geometry.clone(),sel.material.clone());
+  m2.position.copy(sel.position).add(new THREE.Vector3(1.2,0,0));
+  m2.rotation.copy(sel.rotation);m2.scale.copy(sel.scale);
+  m2.castShadow=true;m2.receiveShadow=true;
+  oid++;
+  m2.name=o.name.replace(/\.\d+$/,'')+'.'+String(oid).padStart(3,'0');
+  scene.add(m2);
+  const body=makeBody(o.meshType,m2);
+  const n={id:oid,name:m2.name,mesh:m2,body,meshType:o.meshType,type:'mesh',physEnabled:false,mods:[],visible:true};
+  objects.push(n);
+  select(m2);buildOutliner();
+  notify('Duplicated → '+m2.name);
+}
+
+function applyTransforms(){
+  closeMenus();if(!sel)return;
+  const m=new THREE.Matrix4().makeRotationFromQuaternion(sel.quaternion);
+  m.scale(sel.scale);
+  sel.geometry.applyMatrix4(m);
+  sel.position.set(0,.65,0);sel.rotation.set(0,0,0);sel.scale.set(1,1,1);
+  syncTFInputs();notify('Transforms applied to geometry');
+}
+
+function setOriginCenter(){
+  closeMenus();if(!sel)return;
+  sel.geometry.computeBoundingBox();
+  const c=new THREE.Vector3();
+  sel.geometry.boundingBox.getCenter(c);
+  sel.geometry.translate(-c.x,-c.y,-c.z);
+  sel.position.add(c);syncTFInputs();
+  notify('Origin → geometry center');
+}
+
+function mirrorX(){closeMenus();if(sel){sel.scale.x*=-1;syncTFInputs();notify('Mirrored X');}}
+function mirrorY(){closeMenus();if(sel){sel.scale.y*=-1;syncTFInputs();notify('Mirrored Y');}}
+function mirrorZ(){closeMenus();if(sel){sel.scale.z*=-1;syncTFInputs();notify('Mirrored Z');}}
+
+// ── MODIFIERS ──────────────────────────────────────────────────────────────
+function applyMod(type){
+  closeMenus();
+  if(!sel||sel.type!=='Mesh'){notify('Select a mesh first');return;}
+  const o=findO(sel);if(!o)return;
+  const subs=o.mods.filter(m=>m.type==='subsurf').length;
+  switch(type){
+    case 'subsurf':{
+      const segs=Math.min(96,8*Math.pow(2,subs));
+      let g;
+      switch(o.meshType){
+        case 'sphere':g=new THREE.SphereGeometry(.75,segs,segs/2);break;
+        case 'icosphere':g=new THREE.IcosahedronGeometry(.75,Math.min(6,subs+3));break;
+        case 'cylinder':g=new THREE.CylinderGeometry(.5,.5,1,segs);break;
+        case 'torus':g=new THREE.TorusGeometry(.55,.22,segs/2,segs);break;
+        default:g=new THREE.BoxGeometry(1,1,1,subs+2,subs+2,subs+2);
+      }
+      sel.geometry.dispose();sel.geometry=g;
+      o.mods.push({type:'subsurf',segs});notify('Subdivide Surface ('+segs+' segs)');break;
+    }
+    case 'bevel':o.mods.push({type:'bevel'});notify('Bevel applied');break;
+    case 'solidify':o.mods.push({type:'solidify'});notify('Solidify applied');break;
+    case 'wireframe':
+      sel.material.wireframe=!sel.material.wireframe;
+      o.mods.push({type:'wireframe',on:sel.material.wireframe});
+      notify('Wireframe mod '+(sel.material.wireframe?'ON':'OFF'));break;
+    case 'mirror':
+      sel.scale.x=Math.abs(sel.scale.x)*-1;
+      o.mods.push({type:'mirror'});notify('Mirror X applied');break;
+    case 'smooth':
+      sel.geometry.computeVertexNormals&&sel.geometry.computeVertexNormals();
+      o.mods.push({type:'smooth'});notify('Smooth normals applied');break;
+  }
+  refreshModList(o);
+}
+
+function refreshModList(o){
+  const el=$('mod-list');if(!el)return;
+  el.innerHTML=(o.mods||[]).map((m,i)=>`<div class="mod-row"><span>✓ ${m.type}${m.segs?' ('+m.segs+'seg)':''}</span><button class="mod-x" onclick="removeMod(${i})">✕</button></div>`).join('');
+}
+function removeMod(i){if(!sel)return;const o=findO(sel);if(!o)return;o.mods.splice(i,1);refreshModList(o);notify('Modifier removed');}
+
+// ── SHADING ────────────────────────────────────────────────────────────────
+function setShade(m){
+  shadeMode=m;
+  ['solid','wireframe','material','rendered'].forEach(s=>{
+    $('shb-'+s)?.classList.toggle('act',s===m);
+    $('vpb-'+s)?.classList.toggle('act',s===m);
+  });
+  $('hud-mode').textContent=m.toUpperCase();
+  objects.forEach(o=>{
+    if(!o.mesh||o.type!=='mesh')return;
+    const mesh=o.mesh;
+    if(swapMats.has(mesh)){mesh.material=swapMats.get(mesh);swapMats.delete(mesh);}
+    if(mesh.material)mesh.material.wireframe=false;
+    if(m==='wireframe'){
+      swapMats.set(mesh,mesh.material);
+      mesh.material=new THREE.MeshBasicMaterial({color:0x44aaff,wireframe:true});
+    }
+  });
+  switch(m){
+    case 'solid':renderer.toneMapping=THREE.NoToneMapping;break;
+    case 'material':renderer.toneMapping=THREE.ACESFilmicToneMapping;break;
+    case 'rendered':renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;break;
+  }
+  if(sel&&m!=='wireframe')hilite(sel);
+  notify('Shading: '+m);
+}
+
+// ── MATERIAL ───────────────────────────────────────────────────────────────
+function updateMat(){
+  if(!sel||sel.type!=='Mesh')return;
+  const mtype=$('m-type').value;
+  const col=$('m-col').value;
+  const met=parseFloat($('m-met').value);
+  const rgh=parseFloat($('m-rgh').value);
+  const opa=parseFloat($('m-opa').value);
+  const ecol=$('m-ecol').value;
+  const eint=parseFloat($('m-eint').value);
+  const flat=$('m-flat').checked;
+  const dbl=$('m-dbl').checked;
+
+  let mat=sel.material;
+  const needNew={standard:THREE.MeshStandardMaterial,phong:THREE.MeshPhongMaterial,toon:THREE.MeshToonMaterial,normal:THREE.MeshNormalMaterial,depth:THREE.MeshDepthMaterial};
+  if(mtype==='normal'){sel.material=new THREE.MeshNormalMaterial({flatShading:flat,side:dbl?THREE.DoubleSide:THREE.FrontSide});refreshMatBall();return;}
+  if(mtype==='depth'){sel.material=new THREE.MeshDepthMaterial();refreshMatBall();return;}
+  if(mtype==='standard'&&!(mat instanceof THREE.MeshStandardMaterial))sel.material=mat=new THREE.MeshStandardMaterial();
+  if(mtype==='phong'&&!(mat instanceof THREE.MeshPhongMaterial))sel.material=mat=new THREE.MeshPhongMaterial();
+  if(mtype==='toon'&&!(mat instanceof THREE.MeshToonMaterial))sel.material=mat=new THREE.MeshToonMaterial();
+
+  mat=sel.material;
+  mat.color.set(col);
+  if('metalness' in mat)mat.metalness=met;
+  if('roughness' in mat)mat.roughness=rgh;
+  mat.opacity=opa;mat.transparent=opa<1;
+  if(mat.emissive)mat.emissive.set(ecol);
+  if('emissiveIntensity' in mat)mat.emissiveIntensity=eint;
+  mat.flatShading=flat;mat.side=dbl?THREE.DoubleSide:THREE.FrontSide;
+  mat.needsUpdate=true;
+  hilite(sel);
+  refreshMatBall();
+}
+
+const PRESETS={
+  chrome:{col:'#c8d8e8',met:1,rgh:.04,opa:1,ecol:'#000',eint:0},
+  gold:  {col:'#ffcc00',met:1,rgh:.1,opa:1,ecol:'#000',eint:0},
+  glass: {col:'#aaccff',met:0,rgh:0,opa:.2,ecol:'#000',eint:0},
+  copper:{col:'#b87333',met:.92,rgh:.25,opa:1,ecol:'#000',eint:0},
+  rubber:{col:'#1c1c1c',met:0,rgh:.98,opa:1,ecol:'#000',eint:0},
+  neon:  {col:'#ff0099',met:0,rgh:.2,opa:1,ecol:'#ff0099',eint:6},
+  obsidian:{col:'#18181e',met:.05,rgh:.04,opa:1,ecol:'#000',eint:0},
+  plastic:{col:'#e53e3e',met:0,rgh:.6,opa:1,ecol:'#000',eint:0},
+  ceramic:{col:'#f4f0e8',met:0,rgh:.25,opa:1,ecol:'#000',eint:0},
+  hologram:{col:'#00ffff',met:0,rgh:.1,opa:.55,ecol:'#00ffff',eint:3.5},
+  lava:  {col:'#ff3300',met:0,rgh:.9,opa:1,ecol:'#ff6600',eint:4},
+  wood:  {col:'#7a4a28',met:0,rgh:.92,opa:1,ecol:'#000',eint:0},
+};
+
+function applyPreset(name,doNotify=true){
+  const p=PRESETS[name];if(!p||!sel)return;
+  $('m-col').value=p.col;
+  $('m-met').value=p.met;$('v-met').textContent=p.met.toFixed(2);
+  $('m-rgh').value=p.rgh;$('v-rgh').textContent=p.rgh.toFixed(2);
+  $('m-opa').value=p.opa;$('v-opa').textContent=p.opa.toFixed(2);
+  $('m-ecol').value=p.ecol;
+  $('m-eint').value=p.eint;$('v-eint').textContent=p.eint.toFixed(1);
+  updateMat();
+  if(doNotify)notify('Preset: '+name.charAt(0).toUpperCase()+name.slice(1));
+}
+
+function refreshMatBall(){
+  const el=$('mat-ball');if(!el||!sel?.material)return;
+  const m=sel.material;
+  const col=m.color?'#'+m.color.getHexString():'#888';
+  const met=m.metalness||0,rgh=m.roughness||.5;
+  const opa=m.opacity||1,eint=m.emissiveIntensity||0;
+  const ecol=m.emissive?'#'+m.emissive.getHexString():'#000';
+  const hi=lighten(col,70);
+  const spec=met>.3?`,rgba(255,255,255,${.9*met}) 18%,rgba(200,200,200,${.1*met}) 50%`:'';
+  el.style.background=`radial-gradient(circle at 30% 28%,${hi}${spec},${col} 65%,#050505 100%)`;
+  el.style.boxShadow=eint>0?`0 0 ${eint*6}px ${ecol}`:null;
+  el.style.opacity=String(Math.max(opa,.2));
+}
+
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+}
+
+// ── PROPERTIES PANES ───────────────────────────────────────────────────────
+function refreshPropsPane(){
+  const has=!!sel,isMesh=has&&sel.type==='Mesh';
+  $('ob-empty').style.display=has?'none':'';
+  $('ob-body').style.display=has?'':'none';
+  $('mat-empty').style.display=isMesh?'none':'';
+  $('mat-body').style.display=isMesh?'':'none';
+  if(has)syncTFInputs();
+  if(has){
+    $('ob-vis').checked=sel.visible!==false;
+    $('ob-wire').checked=sel.material?.wireframe||false;
+    $('ob-shad').checked=sel.castShadow!==false;
+    $('ob-rshad').checked=sel.receiveShadow!==false;
+    $('ob-name').value=sel.name;
+    const o=findO(sel);if(o)refreshModList(o);
+  }
+  if(isMesh&&sel.material){
+    const m=sel.material;
+    $('m-col').value='#'+m.color.getHexString();
+    if('metalness' in m){$('m-met').value=m.metalness;$('v-met').textContent=m.metalness.toFixed(2);}
+    if('roughness' in m){$('m-rgh').value=m.roughness;$('v-rgh').textContent=m.roughness.toFixed(2);}
+    $('m-opa').value=m.opacity||1;$('v-opa').textContent=(m.opacity||1).toFixed(2);
+    if(m.emissive){$('m-ecol').value='#'+m.emissive.getHexString();}
+    if('emissiveIntensity' in m){$('m-eint').value=m.emissiveIntensity||0;$('v-eint').textContent=(m.emissiveIntensity||0).toFixed(1);}
+    refreshMatBall();
+  }
+  refreshPhysPane();
+}
+
+function refreshPhysPane(){
+  const o=sel?findO(sel):null;
+  const show=!!o&&o.type==='mesh';
+  $('ph-empty').style.display=show?'none':'';
+  $('ph-body').style.display=show?'':'none';
+  if(show){$('ph-en').checked=o.physEnabled||false;}
+}
+
+function syncTFInputs(){
+  if(!sel)return;
+  $('ob-px').value=sel.position.x.toFixed(3);
+  $('ob-py').value=sel.position.y.toFixed(3);
+  $('ob-pz').value=sel.position.z.toFixed(3);
+  $('ob-rx').value=(sel.rotation.x*180/Math.PI).toFixed(1);
+  $('ob-ry').value=(sel.rotation.y*180/Math.PI).toFixed(1);
+  $('ob-rz').value=(sel.rotation.z*180/Math.PI).toFixed(1);
+  $('ob-sx').value=sel.scale.x.toFixed(3);
+  $('ob-sy').value=sel.scale.y.toFixed(3);
+  $('ob-sz').value=sel.scale.z.toFixed(3);
+}
+
+function applyTF(){
+  if(!sel)return;
+  sel.position.set(parseFloat($('ob-px').value)||0,parseFloat($('ob-py').value)||0,parseFloat($('ob-pz').value)||0);
+  sel.rotation.set((parseFloat($('ob-rx').value)||0)*Math.PI/180,(parseFloat($('ob-ry').value)||0)*Math.PI/180,(parseFloat($('ob-rz').value)||0)*Math.PI/180);
+  sel.scale.set(parseFloat($('ob-sx').value)||1,parseFloat($('ob-sy').value)||1,parseFloat($('ob-sz').value)||1);
+  const o=findO(sel);
+  if(o&&o.body&&o.physEnabled)meshToBody(o);
+  if(sel.userData.isLight)sel.userData.lightRef.position.copy(sel.position);
+}
+
+function setProp(prop,val){
+  if(!sel)return;
+  if(prop==='visible'){sel.visible=val;const o=findO(sel);if(o)o.visible=val;buildOutliner();}
+  else if(prop==='wireframe'&&sel.material)sel.material.wireframe=val;
+  else if(prop==='castShadow')sel.castShadow=val;
+  else if(prop==='receiveShadow')sel.receiveShadow=val;
+}
+
+function renameObj(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  const n=$('ob-name').value.trim();
+  if(n){sel.name=n;o.name=n;buildOutliner();}
+}
+
+// ── OUTLINER ───────────────────────────────────────────────────────────────
+function buildOutliner(){
+  const q=($('ol-q').value||'').toLowerCase();
+  const ICOS={mesh:{cube:'▣',sphere:'●',icosphere:'◈',cylinder:'⬭',torus:'◎',torus_knot:'∞',cone:'△',plane:'▬',lathe:'◗',monkey:'☺',default:'▣'},light:'✦',camera:'📷'};
+  $('ol-list').innerHTML=objects
+    .filter(o=>!o.name.startsWith('__')&&o.name.toLowerCase().includes(q))
+    .map(o=>{
+      const ico=o.type==='light'?ICOS.light:o.type==='camera'?ICOS.camera:(ICOS.mesh[o.meshType]||ICOS.mesh.default);
+      return`<div class="ol-row${o.mesh===sel?' sel':''}${!o.visible?' hid':''}" onclick="select(objects.find(x=>x.id===${o.id}).mesh)">
+        <span class="ol-ico">${ico}</span>
+        <span class="ol-nm">${o.name}</span>
+        <button class="ol-vis" onclick="togObjVis(${o.id},event)">${o.visible!==false?'👁':'○'}</button>
+      </div>`;
+    }).join('');
+}
+function togObjVis(id,e){
+  e.stopPropagation();
+  const o=objects.find(x=>x.id===id);if(!o)return;
+  o.visible=!o.visible;o.mesh.visible=o.visible;
+  if(o.light)o.light.visible=o.visible;
+  buildOutliner();
+}
+
+// ── PANE SWITCHING ─────────────────────────────────────────────────────────
+function showPane(name){
+  const panes=['scene','object','material','physics','render'];
+  panes.forEach(p=>{$('pane-'+p).classList.toggle('act',p===name);});
+  document.querySelectorAll('.ptab').forEach((b,i)=>b.classList.toggle('act',panes[i]===name));
+  if(name==='object'||name==='material'||name==='physics')refreshPropsPane();
+}
+
+function togPg(hdr){
+  const b=hdr.nextElementSibling;
+  b.classList.toggle('coll');
+  hdr.querySelector('span').textContent=b.classList.contains('coll')?'+':'−';
+}
+
+// ── VIEW & CAMERA ──────────────────────────────────────────────────────────
+function setView(v){
+  closeMenus();
+  const d=orbit.getDistance()||9;
+  const T=orbit.target.clone();
+  switch(v){
+    case 'front':camera.position.set(T.x,T.y,T.z+d);break;
+    case 'back': camera.position.set(T.x,T.y,T.z-d);break;
+    case 'right':camera.position.set(T.x+d,T.y,T.z);break;
+    case 'left': camera.position.set(T.x-d,T.y,T.z);break;
+    case 'top':  camera.position.set(T.x,T.y+d,T.z+.001);break;
+    case 'bottom':camera.position.set(T.x,T.y-d,T.z+.001);break;
+    case 'camera':camera.position.set(6,5,9);orbit.target.set(0,0,0);break;
+  }
+  camera.lookAt(orbit.target);
+  orbit.update();notify('View: '+v);
+}
+
+function focusSel(){
+  closeMenus();if(!sel)return;
+  orbit.target.copy(sel.position);
+  const r=sel.geometry?.boundingSphere?.radius||1;
+  const d=Math.max(r*3.5,2);
+  camera.position.copy(sel.position).add(new THREE.Vector3(d,d*.7,d));
+  orbit.update();
+}
+
+function resetCam(){
+  closeMenus();
+  camera.position.set(6,5,9);orbit.target.set(0,0,0);orbit.update();
+}
+
+function updateCam(){
+  camera.fov=parseFloat($('c-fov').value)||75;
+  camera.near=parseFloat($('c-near').value)||.1;
+  camera.far=parseFloat($('c-far').value)||2000;
+  camera.updateProjectionMatrix();
+}
+
+function togGrid(){closeMenus();showGrid=!showGrid;gridH.visible=showGrid;notify('Grid '+(showGrid?'ON':'OFF'));}
+function togAxes(){closeMenus();showAxes=!showAxes;axesH.visible=showAxes;notify('Axes '+(showAxes?'ON':'OFF'));}
+
+// ── WORLD / RENDER SETTINGS ─────────────────────────────────────────────────
+function updateWorld(){
+  ambLight.color.set($('w-amb').value);
+  ambLight.intensity=parseFloat($('w-ai').value)||.3;
+  scene.background=new THREE.Color($('w-bg').value);
+}
+function updateSun(){
+  const ang=(parseFloat($('w-sang').value)||0)*Math.PI/180;
+  const elv=(parseFloat($('w-selv').value)||0)*Math.PI/180;
+  const d=20;
+  sunLight.position.set(Math.cos(ang)*Math.cos(elv)*d,Math.sin(elv)*d,Math.sin(ang)*Math.cos(elv)*d);
+  sunLight.intensity=parseFloat($('w-sint').value)||1.5;
+  $('v-sang').textContent=Math.round($('w-sang').value)+'°';
+  $('v-selv').textContent=Math.round($('w-selv').value)+'°';
+}
+function updateTone(){
+  const maps={ACES:THREE.ACESFilmicToneMapping,Cineon:THREE.CineonToneMapping,Linear:THREE.LinearToneMapping,Reinhard:THREE.ReinhardToneMapping};
+  renderer.toneMapping=maps[$('w-tone').value]||THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=parseFloat($('w-exp').value)||1;
+}
+function togShadows(){
+  closeMenus();
+  renderer.shadowMap.enabled=$('w-shad').checked;
+  notify('Shadows '+(renderer.shadowMap.enabled?'ON':'OFF'));
+}
+function togFog(){
+  const on=$('w-fog').checked;
+  scene.fog=on?new THREE.FogExp2($('w-bg').value||'#111111',parseFloat($('w-fogd').value)||.02):null;
+  notify('Fog '+(on?'ON':'OFF'));
+}
+function updateFog(){if(scene.fog)scene.fog.density=parseFloat($('w-fogd').value);}
+function setRQ(q){
+  closeMenus();
+  const s={low:1024,med:2048,high:4096}[q]||2048;
+  sunLight.shadow.mapSize.set(s,s);sunLight.shadow.map=null;
+  notify('Render quality: '+q);
+}
+
+// ── RENDER ENGINE ──────────────────────────────────────────────────────────
+function renderFull(){
+  closeMenus();
+  const W=parseInt($('r-w').value)||1920;
+  const H=parseInt($('r-h').value)||1080;
+  const qual=$('r-qual').value;
+  notify('⚡ Rendering '+W+'×'+H+'…');
+  setTimeout(()=>{
+    const offR=new THREE.WebGLRenderer({antialias:qual!=='low',preserveDrawingBuffer:true});
+    offR.setSize(W,H);offR.setPixelRatio(1);
+    offR.shadowMap.enabled=true;offR.shadowMap.type=THREE.PCFSoftShadowMap;
+    offR.physicallyCorrectLights=true;
+    offR.toneMapping=THREE.ACESFilmicToneMapping;
+    offR.toneMappingExposure=parseFloat($('w-exp').value)||1;
+    offR.outputEncoding=THREE.sRGBEncoding;
+    const offCam=camera.clone();offCam.aspect=W/H;offCam.updateProjectionMatrix();
+    offR.render(scene,offCam);
+    renderDataURL=offR.domElement.toDataURL('image/png');
+    offR.dispose();
+    const rc=$('rcanvas');
+    const mW=Math.min(W,window.innerWidth-80),mH=Math.min(H,window.innerHeight-160);
+    const sc=Math.min(mW/W,mH/H);
+    rc.width=Math.round(W*sc);rc.height=Math.round(H*sc);
+    const ctx=rc.getContext('2d');
+    const img=new Image();
+    img.onload=()=>{ctx.drawImage(img,0,0,rc.width,rc.height);};
+    img.src=renderDataURL;
+    $('rmodal').classList.add('open');
+    notify('Render complete! '+W+'×'+H);
+  },50);
+}
+
+function downloadRender(){
+  if(!renderDataURL)return;
+  const a=document.createElement('a');a.href=renderDataURL;
+  a.download='ForgeStudio_Render_'+Date.now()+'.png';a.click();
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function exportOBJ(){
+  closeMenus();
+  let out='# ForgeStudio 3D — OBJ Export\n# '+new Date().toISOString()+'\n\n';
+  let vi=1;
+  objects.forEach(o=>{
+    if(o.type!=='mesh')return;
+    out+=`# Object: ${o.name}\ng ${o.name}\n`;
+    const geo=o.mesh.geometry.clone();
+    geo.applyMatrix4(o.mesh.matrixWorld);
+    const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++)out+=`v ${pos.getX(i).toFixed(4)} ${pos.getY(i).toFixed(4)} ${pos.getZ(i).toFixed(4)}\n`;
+    const idx=geo.index;
+    if(idx){for(let i=0;i<idx.count;i+=3)out+=`f ${idx.getX(i)+vi} ${idx.getX(i+1)+vi} ${idx.getX(i+2)+vi}\n`;}
+    vi+=pos.count;
+  });
+  const blob=new Blob([out],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ForgeStudio_Export.obj';a.click();
+  notify('Exported OBJ!');
+}
+
+function exportScene(){closeMenus();notify('HTML Scene export — use File > Save As from browser');}
+
+function newScene(){
+  closeMenus();
+  objects.forEach(o=>{
+    scene.remove(o.mesh);
+    if(o.light)scene.remove(o.light);
+    if(o.body)try{physWorld.removeBody(o.body);}catch(e){}
+  });
+  objects=[];deselect();buildOutliner();
+  notify('New scene created');
+}
+
+// ── UNDO / REDO ────────────────────────────────────────────────────────────
+function pushUndo(cmd){undoStack.push(cmd);if(undoStack.length>80)undoStack.shift();redoStack=[];}
+function doUndo(){
+  closeMenus();
+  if(!undoStack.length){notify('Nothing to undo');return;}
+  const cmd=undoStack.pop();redoStack.push(cmd);
+  notify('Undo: '+cmd.a);
+}
+function doRedo(){
+  closeMenus();
+  if(!redoStack.length){notify('Nothing to redo');return;}
+  const cmd=redoStack.pop();undoStack.push(cmd);
+  notify('Redo: '+cmd.a);
+}
+// Aliases for menu onclick
+const undo=doUndo, redo=doRedo;
+
+// ── HUD ────────────────────────────────────────────────────────────────────
+function updateHUD(){
+  let verts=0,polys=0;
+  objects.forEach(o=>{
+    if(o.type!=='mesh')return;
+    const g=o.mesh.geometry;
+    if(g.attributes.position)verts+=g.attributes.position.count;
+    if(g.index)polys+=g.index.count/3;
+    else if(g.attributes.position)polys+=g.attributes.position.count/3;
+  });
+  $('hud-verts').textContent=`Verts: ${verts.toLocaleString()} | Polys: ${Math.round(polys).toLocaleString()}`;
+}
+
+// ── GIZMO ──────────────────────────────────────────────────────────────────
+function initGizmo(){
+  const c=$('gizmo');c.width=66;c.height=66;
+}
+function drawGizmo(){
+  const c=$('gizmo'),cx=c.getContext('2d');
+  const W=66,H=66,cx2=W/2,cy2=H/2;
+  cx.clearRect(0,0,W,H);
+  cx.save();
+  cx.beginPath();cx.arc(cx2,cy2,30,0,Math.PI*2);
+  cx.fillStyle='rgba(20,20,20,.55)';cx.fill();
+
+  const axes=[
+    {v:new THREE.Vector3(1,0,0),c:'#e05555',l:'X'},
+    {v:new THREE.Vector3(0,1,0),c:'#55cc77',l:'Y'},
+    {v:new THREE.Vector3(0,0,1),c:'#5588ff',l:'Z'},
+  ];
+  const proj=v=>{
+    const r=camera.quaternion.clone().invert();
+    const vv=v.clone().applyQuaternion(r);
+    return{x:cx2+vv.x*22,y:cy2-vv.y*22,z:vv.z};
+  };
+  axes.sort((a,b)=>proj(a.v).z-proj(b.v).z).forEach(ax=>{
+    const p=proj(ax.v),pn=proj(ax.v.clone().negate());
+    cx.strokeStyle=ax.c;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(cx2,cy2);cx.lineTo(p.x,p.y);cx.stroke();
+    cx.fillStyle=ax.c;cx.beginPath();cx.arc(p.x,p.y,3.5,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,255,255,.7)';cx.font='bold 9px JetBrains Mono';
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(ax.l,p.x,p.y);
+    cx.strokeStyle=ax.c+'55';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(cx2,cy2);cx.lineTo(pn.x,pn.y);cx.stroke();
+  });
+  cx.restore();
+}
+
+// ── RESIZE ─────────────────────────────────────────────────────────────────
+function onResize(){
+  const vp=$('vp');
+  const W=vp.clientWidth,H=vp.clientHeight;
+  camera.aspect=W/H;camera.updateProjectionMatrix();
+  renderer.setSize(W,H);
+}
+
+// ── MENUS ──────────────────────────────────────────────────────────────────
+function openMenu(name){
+  const was=$('drop-'+name).classList.contains('vis');
+  closeMenus();
+  if(!was){$('drop-'+name).classList.add('vis');$('m-'+name).classList.add('open');}
+}
+function closeMenus(){
+  document.querySelectorAll('.drop').forEach(d=>d.classList.remove('vis'));
+  document.querySelectorAll('.mnu').forEach(m=>m.classList.remove('open'));
+}
+
+function showCtx(x,y){
+  const c=$('ctx');c.style.display='block';
+  const cx=Math.min(x,window.innerWidth-180),cy=Math.min(y,window.innerHeight-420);
+  c.style.left=cx+'px';c.style.top=cy+'px';
+}
+
+// ── NOTIFICATION ────────────────────────────────────────────────────────────
+let notifT;
+function notify(msg,dur=2200){
+  if(!msg)return;
+  const el=$('notif');el.textContent=msg;el.style.display='block';
+  clearTimeout(notifT);notifT=setTimeout(()=>el.style.display='none',dur);
+}
+
+// ── START ──────────────────────────────────────────────────────────────────
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
