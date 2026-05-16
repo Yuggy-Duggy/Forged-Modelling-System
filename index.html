@@ -351,7 +351,11 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:v
   <div class="tbsep"></div>
   <button class="tb" id="t-bind" onclick="setTool('bind')" style="font-size:13px">
     ⛓
-    <span class="tb-tip">Bind/Tether (B) — click 2 objects</span>
+    <span class="tb-tip">Bind/Tether (B)</span>
+  </button>
+  <button class="tb" id="t-clip" onclick="setTool('clip')" style="font-size:13px;color:var(--dn)">
+    ✂
+    <span class="tb-tip">Clip Debug (C) — merge B into A surface</span>
   </button>
   <div class="tbsep"></div>
   <button class="tb" onclick="addMesh('cube')">
@@ -424,6 +428,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:v
     <button class="ptab" onclick="showPane('material')">Shader</button>
     <button class="ptab" onclick="showPane('physics')">Physics</button>
     <button class="ptab" onclick="showPane('render')">Render</button>
+    <button class="ptab" onclick="showPane('debug')" style="color:var(--dn)">Debug</button>
   </div>
 
   <!-- SCENE / OUTLINER -->
@@ -591,37 +596,37 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:v
       <div class="pgh" onclick="togPg(this)">▸ TETHER / BIND ⛓ <span>−</span></div>
       <div class="pgb">
 
-        <!-- HOW TO USE -->
-        <div style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:7px 8px;margin-bottom:6px;line-height:1.85;font-size:9.5px;color:var(--t2)">
-          <div style="color:var(--acc);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:4px">HOW TO USE</div>
-          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">1</span> Press <span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1)">B</span> to enter Bind mode</div>
-          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">2</span> Click your <b style="color:var(--acc)">first</b> object — it glows</div>
-          <div><span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 4px;border-radius:2px;color:var(--t1);font-size:9px">3</span> Click your <b style="color:var(--acc)">second</b> object — tether created</div>
-          <div style="margin-top:3px;color:var(--t3)">The two objects are now locked together. When physics runs they move as a connected unit — collide, fall, bounce — all while maintaining their link. The dashed orange line shows the constraint.</div>
-        </div>
-
-        <!-- TETHER SETTINGS -->
-        <div class="pr"><span class="pl">Strength</span>
-          <select class="sel" id="teth-mode" onchange="tetherMode=this.value">
-            <option value="rigid">Rigid (fixed distance)</option>
-            <option value="spring">Spring (elastic pull)</option>
+        <!-- SNAP MODE -->
+        <div class="pr" style="margin-bottom:5px">
+          <span class="pl">Snap Mode</span>
+          <select class="sel" id="bind-snap" onchange="bindSnapMode=this.value">
+            <option value="surface" selected>Surface (any point)</option>
+            <option value="vertex">Vertex (exact corner)</option>
+            <option value="face">Face Centre</option>
           </select>
         </div>
-        <div class="pr"><span class="pl">Max Length</span>
-          <input type="range" class="sldr" id="teth-len" min="0" max="10" step=".1" value="0"
-            oninput="tetherMaxLen=+this.value;$('v-tlen').textContent=this.value==0?'Auto':this.value+'m'">
-          <span class="slv" id="v-tlen">Auto</span>
+        <div class="pr">
+          <span class="pl">Constraint</span>
+          <select class="sel" id="teth-mode" onchange="tetherMode=this.value">
+            <option value="rigid">Rigid</option>
+            <option value="spring">Spring / Elastic</option>
+          </select>
         </div>
 
-        <!-- BIND STATUS -->
-        <div id="bind-status" style="font-size:9px;margin:4px 0;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3)">
-          Press B to start binding
+        <!-- LIVE STEP GUIDE -->
+        <div id="bind-steps" style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:6px 8px;margin:5px 0;line-height:2.1;font-size:9.5px">
+          <div id="bs1" style="color:var(--t3)">① Click <b>anywhere on Object A</b></div>
+          <div id="bs2" style="color:var(--t3)">② Click <b>anywhere on Object B</b> — done!</div>
+        </div>
+
+        <!-- STATUS -->
+        <div id="bind-status" style="font-size:9px;margin:3px 0;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3)">
+          Press B to begin
         </div>
 
         <button class="btn acc" onclick="setTool('bind')">⛓ Bind Tool (B)</button>
-        <button class="btn" onclick="cancelBind()">✕ Cancel Bind</button>
+        <button class="btn" onclick="cancelBind()">✕ Cancel / Reset</button>
 
-        <!-- ACTIVE TETHERS LIST -->
         <div style="margin-top:6px;font-size:9px;color:var(--t3);letter-spacing:.5px;font-weight:600">ACTIVE TETHERS</div>
         <div id="constraint-list" style="margin-top:3px"></div>
       </div>
@@ -694,6 +699,78 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:v
       </div>
     </div>
     <button class="btn acc" style="margin-top:5px" onclick="renderFull()">⚡ RENDER IMAGE (F12)</button>
+  </div>
+
+  <!-- DEBUG PANE -->
+  <div class="pane" id="pane-debug">
+
+    <!-- CLIP TOOL -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CLIP DEBUG ✂ <span>−</span></div>
+      <div class="pgb">
+        <div style="background:var(--bg2);border:1px solid rgba(212,64,64,.35);border-radius:3px;padding:7px 8px;margin-bottom:6px;line-height:1.9;font-size:9.5px;color:var(--t2)">
+          <div style="color:var(--dn);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:4px">HOW CLIP WORKS</div>
+          <div>Intentionally merges Object B's origin into a clicked surface point on Object A — causing it to clip and intersect. Good for debug, stress-testing physics, and creative glitch effects.</div>
+        </div>
+
+        <!-- Clip step guide -->
+        <div style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:6px 8px;margin-bottom:5px;line-height:2.2;font-size:9.5px">
+          <div id="clip-s1" style="color:var(--t3)">① Click surface on <b>Object A</b> (the target)</div>
+          <div id="clip-s2" style="color:var(--t3)">② Click <b>Object B</b> — it clips in</div>
+        </div>
+
+        <div id="clip-status" style="font-size:9px;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3);margin-bottom:5px">
+          Press C to begin clipping
+        </div>
+
+        <!-- Clip depth -->
+        <div class="pr">
+          <span class="pl">Clip Depth</span>
+          <input type="range" class="sldr" id="clip-depth" min="-2" max="2" step=".05" value="0"
+            oninput="clipDepth=+this.value;$('v-cdepth').textContent=this.value">
+          <span class="slv" id="v-cdepth">0</span>
+        </div>
+        <div style="font-size:8.5px;color:var(--t3);margin-bottom:4px">Negative = pull out, Positive = push deeper in</div>
+
+        <button class="btn dn" onclick="setTool('clip')">✂ Clip Tool (C)</button>
+        <button class="btn" onclick="cancelClip()">✕ Cancel</button>
+      </div>
+    </div>
+
+    <!-- VISUALISATION AIDS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ VISUALISATION <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Bounding Box</span><input type="checkbox" class="chk" id="dbg-bb" onchange="toggleBBoxAll(this.checked)"></div>
+        <div class="pr"><span class="pl">Face Normals</span><input type="checkbox" class="chk" id="dbg-norm" onchange="toggleNormals(this.checked)"></div>
+        <div class="pr"><span class="pl">Vertex Dots</span><input type="checkbox" class="chk" id="dbg-verts" onchange="toggleVertDots(this.checked)"></div>
+        <div class="pr"><span class="pl">Wireframe All</span><input type="checkbox" class="chk" id="dbg-wire" onchange="toggleWireAll(this.checked)"></div>
+        <div class="pr"><span class="pl">World Origin</span><input type="checkbox" class="chk" id="dbg-origin" checked onchange="toggleOrigin(this.checked)"></div>
+        <div class="pr"><span class="pl">Shadow Map</span><input type="checkbox" class="chk" id="dbg-shad" onchange="toggleShadowDebug(this.checked)"></div>
+        <button class="btn" style="margin-top:3px" onclick="clearAllDebug()">Clear All Debug</button>
+      </div>
+    </div>
+
+    <!-- SCENE STATS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ SCENE STATS <span>−</span></div>
+      <div class="pgb">
+        <div id="dbg-stats" style="font-size:9.5px;line-height:2;color:var(--t2)">
+          Open Debug tab to refresh
+        </div>
+        <button class="btn" onclick="refreshDebugStats()">↺ Refresh</button>
+      </div>
+    </div>
+
+    <!-- CLIPPED OBJECTS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CLIP LOG <span>−</span></div>
+      <div class="pgb">
+        <div id="clip-log" style="font-size:9px;color:var(--t3)">No clips yet</div>
+        <button class="btn dn" onclick="clearClipLog()" style="margin-top:3px">Clear Log</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -783,7 +860,6 @@ let lastT=0,frameN=0,fpsCur=60;
 const RC=new THREE.Raycaster();
 const MV=new THREE.Vector2();
 const swapMats=new WeakMap();
-let dragPosHistory=[];
 
 // ── REWIND SYSTEM ──
 const physTape=new Map();
@@ -793,13 +869,19 @@ let rewindHeads=new Map();
 let rewindWasRunning=false;
 
 // ── BIND / TETHER SYSTEM ──
-let physConstraints=[];  // {id,cannon,line,objA,objB,type}
-let bindFirst=null;       // first mesh clicked in bind mode
+let physConstraints=[];
+let bindStep=1;          // 1 = waiting for A surface click, 2 = waiting for B surface click
+let bindObjA=null;       // first THREE.Mesh
+let bindWorldA=null;     // anchor in WORLD space on A (THREE.Vector3)
+let bindMarkerA=null;    // orange sphere at anchor A
+let bindHoverMarker=null;// preview dot that follows cursor
+let bindSnapMode='surface'; // 'surface'|'vertex'|'face'
 let cid=0;
-let tetherMode='rigid';   // 'rigid' | 'spring'
-let tetherMaxLen=0;       // 0 = auto (use current distance)
+let tetherMode='rigid';
+let tetherMaxLen=0;
 
 // ── DRAG VELOCITY TRACKING ──
+let dragPosHistory=[];
 
 // ── LOADING ────────────────────────────────────────────────────────────────
 const LDM=['Initialising engine...','Loading physics world...','Building shaders...','Compiling scene graph...','Ready!'];
@@ -953,14 +1035,26 @@ function init(){
   new ResizeObserver(onResize).observe(vp);
   canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(sel)showCtx(e.clientX,e.clientY);});
 
-  // ── SELECTION via native click event ──────────────────────────────────────
-  // The browser only fires 'click' on a genuine click (not a drag).
-  // TransformControls captures pointer events during gizmo drags which
-  // prevents click from firing — so we get drag/click separation for free.
-  canvas.addEventListener('click', onCanvasClick);
+  // ── CLICK DETECTION ─────────────────────────────────────────────────────
+  // Use pointerdown/pointerup on the canvas only.
+  // We guard with tfCtrl.dragging so gizmo drags never trigger selection.
+  let _pd={x:0,y:0};
+  canvas.addEventListener('pointerdown',e=>{if(e.button===0){_pd.x=e.clientX;_pd.y=e.clientY;}});
+  canvas.addEventListener('pointerup',e=>{
+    if(e.button!==0)return;
+    if(tfCtrl.dragging)return;
+    const dx=e.clientX-_pd.x, dy=e.clientY-_pd.y;
+    if(dx*dx+dy*dy>100)return;
+    handleViewportClick(e.clientX,e.clientY);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(tool==='bind')updateBindHover(e.clientX,e.clientY);
+    else if(tool==='clip')updateClipHover(e.clientX,e.clientY);
+    else {clearBindHover();clearClipHover();}
+  });
 
-  // Document-level: close menus and context menu on any outside click
-  document.addEventListener('mousedown',e=>{
+  // Close menus on any outside click
+  document.addEventListener('pointerdown',e=>{
     if(!e.target.closest('.drop')&&!e.target.classList.contains('mnu'))closeMenus();
     if(!e.target.closest('#ctx'))$('ctx').style.display='none';
   });
@@ -1031,14 +1125,25 @@ function animate(t=0){
     updateRewindHUD(false);
   }
 
-  // ── ALWAYS: update tether lines ──
+  // ── Update tether lines anchor-to-anchor ──
   physConstraints.forEach(c=>{
     if(!c.objA.mesh||!c.objB.mesh)return;
-    const pts=[c.objA.mesh.position.clone(),c.objB.mesh.position.clone()];
-    c.line.geometry.setFromPoints(pts);
+    // Convert body-local pivots back to world space for the visual line
+    const bA=c.objA.body, bB=c.objB.body;
+    const wA=new THREE.Vector3(),wB=new THREE.Vector3();
+    const qA=new THREE.Quaternion(bA.quaternion.x,bA.quaternion.y,bA.quaternion.z,bA.quaternion.w);
+    const qB=new THREE.Quaternion(bB.quaternion.x,bB.quaternion.y,bB.quaternion.z,bB.quaternion.w);
+    wA.set(c.pivA.x,c.pivA.y,c.pivA.z).applyQuaternion(qA)
+      .add(new THREE.Vector3(bA.position.x,bA.position.y,bA.position.z));
+    wB.set(c.pivB.x,c.pivB.y,c.pivB.z).applyQuaternion(qB)
+      .add(new THREE.Vector3(bB.position.x,bB.position.y,bB.position.z));
+    c.line.geometry.setFromPoints([wA,wB]);
     c.line.geometry.attributes.position.needsUpdate=true;
   });
 
+  // Update debug helpers
+  debugBBoxHelpers.forEach(h=>h.update&&h.update());
+  debugNormalHelpers.forEach(h=>h.update&&h.update());
   orbit.update();
   drawGizmo();
   renderer.render(scene,camera);
@@ -1223,25 +1328,178 @@ function applyImpulse(ix,iy,iz){
   notify('Impulse applied!');
 }
 
-// ── BIND / TETHER ─────────────────────────────────────────────────────────
+// ── BIND HELPERS ──────────────────────────────────────────────────────────
+
 function setBindStatus(msg,state='info'){
   const el=$('bind-status');if(!el)return;
   const cols={info:'var(--t2)',ok:'var(--ok)',warn:'var(--warn)',err:'var(--dn)'};
   el.textContent=msg;el.style.color=cols[state]||cols.info;
 }
 
-function cancelBind(){
-  if(bindFirst){unhilite(bindFirst);bindFirst=null;}
-  setBindStatus('Press B to start binding');
+function setBindStep(n){
+  bindStep=n;
+  [1,2].forEach(i=>{
+    const el=$('bs'+i);if(!el)return;
+    el.style.color=i===n?'var(--acc)':i<n?'var(--ok)':'var(--t3)';
+    el.style.fontWeight=i===n?'700':'400';
+  });
 }
 
-function createBind(meshA,meshB){
-  const oA=findO(meshA),oB=findO(meshB);
-  if(!oA||!oB||oA.type!=='mesh'||oB.type!=='mesh'){
-    notify('Both must be mesh objects');cancelBind();return;
+function cancelBind(){
+  if(bindMarkerA){scene.remove(bindMarkerA);bindMarkerA=null;}
+  if(bindObjA)unhilite(bindObjA);
+  clearBindHover();
+  bindObjA=null; bindWorldA=null;
+  setBindStep(1);
+  setBindStatus('Press B to begin');
+}
+
+// ── HOVER PREVIEW ──
+function getSnapWorldPoint(hit){
+  const mesh=hit.object;
+  switch(bindSnapMode){
+    case 'vertex':{
+      // snap to nearest vertex in world space
+      const pos=mesh.geometry.attributes.position;
+      if(!pos)return hit.point.clone();
+      let best=null,bestD=Infinity;
+      for(let i=0;i<pos.count;i++){
+        const v=new THREE.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i));
+        const w=mesh.localToWorld(v.clone());
+        const d=w.distanceTo(hit.point);
+        if(d<bestD){bestD=d;best=w;}
+      }
+      return best||hit.point.clone();
+    }
+    case 'face':{
+      // snap to face centre in world space
+      const pos=mesh.geometry.attributes.position;
+      if(!pos||!hit.face)return hit.point.clone();
+      const a=new THREE.Vector3(pos.getX(hit.face.a),pos.getY(hit.face.a),pos.getZ(hit.face.a));
+      const b=new THREE.Vector3(pos.getX(hit.face.b),pos.getY(hit.face.b),pos.getZ(hit.face.b));
+      const c=new THREE.Vector3(pos.getX(hit.face.c),pos.getY(hit.face.c),pos.getZ(hit.face.c));
+      return mesh.localToWorld(a.add(b).add(c).divideScalar(3));
+    }
+    default: return hit.point.clone(); // surface — exact hit point
+  }
+}
+
+// Compute a Cannon.js pivot (in body local frame, unscaled) from a world point on a mesh
+function worldToBodyPivot(body,worldPt){
+  const dx=worldPt.x-body.position.x;
+  const dy=worldPt.y-body.position.y;
+  const dz=worldPt.z-body.position.z;
+  const invQ=body.quaternion.inverse();
+  const out=new CANNON.Vec3();
+  invQ.vmult(new CANNON.Vec3(dx,dy,dz),out);
+  return out;
+}
+
+function clearBindHover(){
+  if(bindHoverMarker){scene.remove(bindHoverMarker);bindHoverMarker=null;}
+}
+
+function updateBindHover(clientX,clientY){
+  const canvas=$('c3d'),r=canvas.getBoundingClientRect();
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+  if(!hits.length){clearBindHover();return;}
+  const worldPt=getSnapWorldPoint(hits[0]);
+  if(!bindHoverMarker){
+    const col=bindStep===1?0xffaa00:0x00ccff;
+    const geo=new THREE.SphereGeometry(0.04,8,8);
+    const mat=new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true,opacity:.9});
+    bindHoverMarker=new THREE.Mesh(geo,mat);
+    scene.add(bindHoverMarker);
+  } else {
+    // Update colour per step
+    bindHoverMarker.material.color.setHex(bindStep===1?0xffaa00:0x00ccff);
+  }
+  bindHoverMarker.position.copy(worldPt);
+}
+
+function makeAnchorMarker(worldPt,color=0xff6600){
+  const geo=new THREE.SphereGeometry(0.055,10,10);
+  const mat=new THREE.MeshBasicMaterial({color,depthTest:false,transparent:true,opacity:.92});
+  const m=new THREE.Mesh(geo,mat);
+  m.position.copy(worldPt);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.1,.008,6,20),
+    new THREE.MeshBasicMaterial({color,depthTest:false,transparent:true,opacity:.55}));
+  m.add(ring);
+  scene.add(m);
+  return m;
+}
+
+// ── 2-STEP BIND CLICK ─────────────────────────────────────────────────────
+function handleBindClick(hits){
+  if(!hits.length){
+    setBindStatus(bindStep===1?'Hover over Object A and click any point on its surface'
+      :'Hover over Object B and click any point on its surface','warn');
+    return;
+  }
+  const hit=hits[0];
+  const clicked=hit.object;
+  const worldPt=getSnapWorldPoint(hit);
+
+  // Step 1: pick surface point on Object A
+  if(bindStep===1){
+    const oA=findO(clicked);
+    if(!oA||oA.type!=='mesh'){setBindStatus('Must be a mesh object','warn');return;}
+    if(bindObjA&&bindObjA!==clicked)unhilite(bindObjA);
+    bindObjA=clicked;
+    bindWorldA=worldPt.clone();
+    select(clicked);
+    clearBindHover();
+    if(bindMarkerA){scene.remove(bindMarkerA);bindMarkerA=null;}
+    bindMarkerA=makeAnchorMarker(bindWorldA,0xff6600);
+    setBindStep(2);
+    const snapLabel={surface:'surface point',vertex:'nearest vertex',face:'face centre'}[bindSnapMode];
+    setBindStatus(`✓ Anchor A set (${snapLabel}) — now click anywhere on Object B`,'ok');
+    return;
   }
 
-  // Auto-enable physics on both so the constraint has bodies to work with
+  // Step 2: pick surface point on Object B → create constraint
+  if(bindStep===2){
+    if(clicked===bindObjA){
+      setBindStatus('That is Object A — click a different object for B','warn');
+      return;
+    }
+    const oB=findO(clicked);
+    if(!oB||oB.type!=='mesh'){setBindStatus('Must be a mesh object','warn');return;}
+    const worldB=worldPt.clone();
+
+    // Flash blue marker at B's point
+    const markerB=makeAnchorMarker(worldB,0x00aaff);
+    setTimeout(()=>scene.remove(markerB),1600);
+
+    createBind(bindObjA,bindWorldA,clicked,worldB);
+
+    // Fade A marker
+    const mRef=bindMarkerA; bindMarkerA=null;
+    setTimeout(()=>{if(mRef)scene.remove(mRef);},1600);
+
+    unhilite(bindObjA);
+    bindObjA=null; bindWorldA=null;
+    clearBindHover();
+    setBindStep(1);
+    setBindStatus('⛓ Bound! Click B again to begin another','ok');
+    setTimeout(()=>setTool('select'),300);
+  }
+}
+
+// ── MAIN BIND CREATION ────────────────────────────────────────────────────
+function createBind(meshA,worldA,meshB,worldB){
+  const oA=findO(meshA),oB=findO(meshB);
+  if(!oA||!oB){notify('Both must be mesh objects');cancelBind();return;}
+
+  // Move Object B so its chosen surface point aligns with Object A's surface point
+  const offset=new THREE.Vector3().subVectors(worldA,worldB);
+  meshB.position.add(offset);
+  meshB.updateMatrixWorld(true);
+
+  // Auto-enable physics on both
   [oA,oB].forEach(o=>{
     if(!o.physEnabled){
       o.physEnabled=true;
@@ -1250,38 +1508,39 @@ function createBind(meshA,meshB){
     }
   });
   if(!physEnabled)togglePhysics();
+  meshToBody(oB); // sync B to its new position
 
-  // Current distance between the two objects
-  const dist=meshA.position.distanceTo(meshB.position);
-  const constraintDist=tetherMaxLen>0?tetherMaxLen:dist;
+  // Compute Cannon pivots in each body's local unscaled frame
+  // worldA is still the correct attachment point for A (A didn't move)
+  // worldB_new = worldA (since B moved to align)
+  const pivA=worldToBodyPivot(oA.body,worldA);
+  // After moving B, the attach point is now at worldA for both
+  const pivB=worldToBodyPivot(oB.body,worldA);
 
   let cannon;
   if(tetherMode==='spring'){
-    // Spring: DistanceConstraint lets them stretch and bounce back
-    cannon=new CANNON.DistanceConstraint(oA.body,oB.body,constraintDist,1e4);
+    cannon=new CANNON.DistanceConstraint(oA.body,oB.body,0,1e5);
   } else {
-    // Rigid: PointToPointConstraint locks them at their current centres
-    cannon=new CANNON.PointToPointConstraint(
-      oA.body,new CANNON.Vec3(0,0,0),
-      oB.body,new CANNON.Vec3(0,0,0)
-    );
+    cannon=new CANNON.PointToPointConstraint(oA.body,pivA,oB.body,pivB);
   }
   physWorld.addConstraint(cannon);
 
-  // Visual dashed tether line
-  const geo=new THREE.BufferGeometry().setFromPoints([meshA.position.clone(),meshB.position.clone()]);
+  // Visual line — updates anchor-to-anchor each frame using stored world pivots
+  const pts=[worldA.clone(),worldA.clone()]; // start same, animate loop will update
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
   const lineMat=new THREE.LineDashedMaterial({
-    color:tetherMode==='spring'?0x00aaff:0xff8800,
-    dashSize:.16,gapSize:.08,linewidth:1
+    color:tetherMode==='spring'?0x00aaff:0xff7700,
+    dashSize:.14,gapSize:.07
   });
   const line=new THREE.Line(geo,lineMat);
   line.computeLineDistances();
   scene.add(line);
 
   cid++;
-  physConstraints.push({id:cid,cannon,line,objA:oA,objB:oB,mode:tetherMode,dist:constraintDist});
+  // Store pivots for live line update (in body local space)
+  physConstraints.push({id:cid,cannon,line,objA:oA,objB:oB,pivA,pivB,mode:tetherMode});
   buildConstraintList();
-  notify(`⛓ Tethered (${tetherMode}): ${oA.name.split('.')[0]} ↔ ${oB.name.split('.')[0]}`);
+  notify(`⛓ Bound (${bindSnapMode}): ${oA.name.split('.')[0]} ↔ ${oB.name.split('.')[0]}`);
 }
 
 function removeBind(id){
@@ -1290,8 +1549,7 @@ function removeBind(id){
   try{physWorld.removeConstraint(c.cannon);}catch(e){}
   scene.remove(c.line);c.line.geometry.dispose();c.line.material.dispose();
   physConstraints.splice(idx,1);
-  buildConstraintList();
-  notify('Tether removed');
+  buildConstraintList();notify('Tether removed');
 }
 
 function removeAllBinds(){
@@ -1305,20 +1563,344 @@ function removeAllBinds(){
 function buildConstraintList(){
   const el=$('constraint-list');if(!el)return;
   if(!physConstraints.length){
-    el.innerHTML='<div style="font-size:9px;color:var(--t3);padding:3px 0">No active tethers</div>';
-    return;
+    el.innerHTML='<div style="font-size:9px;color:var(--t3);padding:3px 0">No active tethers</div>';return;
   }
   el.innerHTML=physConstraints.map(c=>`
     <div class="mod-row" style="margin-top:2px;gap:4px">
-      <span style="width:10px;height:10px;border-radius:50%;background:${c.mode==='spring'?'#00aaff':'#ff8800'};flex-shrink:0;display:inline-block"></span>
+      <span style="width:9px;height:9px;border-radius:50%;background:${c.mode==='spring'?'#00aaff':'#ff7700'};flex-shrink:0;display:inline-block"></span>
       <span style="font-size:9px;color:var(--t1);flex:1">${c.objA.name.split('.')[0]} ↔ ${c.objB.name.split('.')[0]}</span>
       <span style="font-size:8px;color:var(--t3)">${c.mode}</span>
-      <button class="mod-x" onclick="removeBind(${c.id})" title="Remove">✕</button>
+      <button class="mod-x" onclick="removeBind(${c.id})">✕</button>
     </div>`).join('')+
     `<button class="btn dn" style="margin-top:4px;font-size:9px" onclick="removeAllBinds()">Remove All</button>`;
 }
 
-// ── MESH CREATION ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  CLIP DEBUG TOOL
+// ═══════════════════════════════════════════════════════════════════════════
+
+let clipStep=1;          // 1 = waiting for surface on A, 2 = waiting for B
+let clipObjA=null;       // target mesh
+let clipWorldA=null;     // world-space surface point on A
+let clipMarkerA=null;    // red X marker at clip point
+let clipHoverMarker=null;
+let clipDepth=0;         // extra push-in depth (metres)
+let clipLog=[];          // [{nameA, nameB, time}]
+
+function setClipStatus(msg,state='info'){
+  const el=$('clip-status');if(!el)return;
+  const cols={info:'var(--t2)',ok:'var(--ok)',warn:'var(--warn)',err:'var(--dn)'};
+  el.textContent=msg;el.style.color=cols[state]||cols.info;
+}
+
+function setClipStep(n){
+  clipStep=n;
+  [1,2].forEach(i=>{
+    const el=$('clip-s'+i);if(!el)return;
+    el.style.color=i===n?'var(--dn)':i<n?'var(--ok)':'var(--t3)';
+    el.style.fontWeight=i===n?'700':'400';
+  });
+}
+
+function cancelClip(){
+  if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+  if(clipObjA)unhilite(clipObjA);
+  clearClipHover();
+  clipObjA=null;clipWorldA=null;
+  setClipStep(1);
+  setClipStatus('Press C to begin clipping');
+}
+
+// Hover preview for clip — red crosshair dot
+function clearClipHover(){
+  if(clipHoverMarker){scene.remove(clipHoverMarker);clipHoverMarker=null;}
+}
+
+function updateClipHover(clientX,clientY){
+  const canvas=$('c3d'),r=canvas.getBoundingClientRect();
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+  if(!hits.length){clearClipHover();return;}
+  const pt=hits[0].point.clone();
+
+  if(!clipHoverMarker){
+    // Red X crosshair marker
+    const grp=new THREE.Group();
+    const lmat=new THREE.LineBasicMaterial({color:0xff2222,depthTest:false});
+    const s=0.07;
+    [[new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0)],
+     [new THREE.Vector3(0,-s,0),new THREE.Vector3(0,s,0)],
+     [new THREE.Vector3(0,0,-s),new THREE.Vector3(0,0,s)]].forEach(pts=>{
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      grp.add(new THREE.Line(geo,lmat));
+    });
+    clipHoverMarker=grp;
+    scene.add(clipHoverMarker);
+  }
+  clipHoverMarker.position.copy(pt);
+}
+
+function makeClipMarker(worldPt){
+  // Glowing red sphere with crosshair lines
+  const grp=new THREE.Group();
+  const smat=new THREE.MeshBasicMaterial({color:0xff1111,depthTest:false,transparent:true,opacity:.85});
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8),smat);
+  grp.add(dot);
+  const lmat=new THREE.LineBasicMaterial({color:0xff4444,depthTest:false});
+  const s=0.14;
+  [[new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0)],
+   [new THREE.Vector3(0,-s,0),new THREE.Vector3(0,s,0)],
+   [new THREE.Vector3(0,0,-s),new THREE.Vector3(0,0,s)]].forEach(pts=>{
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    grp.add(new THREE.Line(geo,lmat));
+  });
+  grp.position.copy(worldPt);
+  scene.add(grp);
+  return grp;
+}
+
+// 2-step clip click handler
+function handleClipClick(hits){
+  if(!hits.length){
+    setClipStatus(clipStep===1?'Hover over Object A and click a surface point'
+      :'Now click Object B to clip it in','warn');
+    return;
+  }
+  const hit=hits[0];
+  const clicked=hit.object;
+
+  // Step 1: pick surface point on A (the target)
+  if(clipStep===1){
+    const oA=findO(clicked);
+    if(!oA||oA.type!=='mesh'){setClipStatus('Must be a mesh object','warn');return;}
+    if(clipObjA)unhilite(clipObjA);
+    clipObjA=clicked;
+    clipWorldA=hit.point.clone(); // raw surface point, no snap
+    select(clicked);
+    clearClipHover();
+    if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+    clipMarkerA=makeClipMarker(clipWorldA);
+    setClipStep(2);
+    setClipStatus(`✓ Target point set on ${clicked.name.split('.')[0]} — now click Object B`,'ok');
+    return;
+  }
+
+  // Step 2: pick B — clip its ORIGIN into the surface point on A
+  if(clipStep===2){
+    if(clicked===clipObjA){
+      // Clicked A again — update the clip point
+      clipWorldA=hit.point.clone();
+      if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+      clipMarkerA=makeClipMarker(clipWorldA);
+      setClipStatus(`Clip point updated — now click Object B`,'ok');
+      return;
+    }
+    const oB=findO(clicked);
+    if(!oB||oB.type!=='mesh'){setClipStatus('Must be a mesh object','warn');return;}
+
+    // The KEY difference from Bind: B's origin (center) goes to the surface point,
+    // not B's surface. This causes geometric clipping/interpenetration.
+    const faceNormal=hit.face?hit.face.normal.clone():new THREE.Vector3(0,1,0);
+    // Transform face normal to world space
+    const normalMatrix=new THREE.Matrix3().getNormalMatrix(clipObjA.matrixWorld);
+    faceNormal.applyMatrix3(normalMatrix).normalize();
+    // Move B's center to the surface point, then push in by clipDepth along the face normal
+    const targetPos=clipWorldA.clone().addScaledVector(faceNormal,-clipDepth);
+    clicked.position.copy(targetPos);
+    clicked.updateMatrixWorld(true);
+
+    // If physics is on, sync the body too
+    const syncObj=oB;
+    if(syncObj.body){
+      syncObj.body.position.set(targetPos.x,targetPos.y,targetPos.z);
+      syncObj.body.velocity.setZero();
+      syncObj.body.angularVelocity.setZero();
+      syncObj.body.wakeUp();
+    }
+
+    // Flash effect — briefly show B in wireframe then restore
+    const origWire=clicked.material.wireframe;
+    clicked.material.wireframe=true;
+    setTimeout(()=>{clicked.material.wireframe=origWire;},280);
+
+    // Log it
+    const entry={nameA:clipObjA.name.split('.')[0],nameB:clicked.name.split('.')[0],depth:clipDepth,time:new Date().toLocaleTimeString()};
+    clipLog.unshift(entry);
+    if(clipLog.length>12)clipLog.pop();
+    buildClipLog();
+
+    notify(`✂ Clipped: ${entry.nameB} → ${entry.nameA} (depth ${clipDepth.toFixed(2)}m)`);
+    setClipStatus(`✂ Done! B clipped into A. Click A again to set new point`,'ok');
+
+    // Cleanup markers
+    const mRef=clipMarkerA; clipMarkerA=null;
+    setTimeout(()=>{if(mRef)scene.remove(mRef);},1000);
+
+    // Reset to step 1 so user can clip again immediately
+    unhilite(clipObjA);
+    clipObjA=null; clipWorldA=null;
+    setClipStep(1);
+    setTimeout(()=>setTool('select'),300);
+  }
+}
+
+function buildClipLog(){
+  const el=$('clip-log');if(!el)return;
+  if(!clipLog.length){el.innerHTML='<span style="color:var(--t3)">No clips yet</span>';return;}
+  el.innerHTML=clipLog.map(e=>`
+    <div style="padding:3px 0;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:6px">
+      <span style="color:var(--dn)">✂</span>
+      <span style="flex:1;color:var(--t1)">${e.nameB} → ${e.nameA}</span>
+      <span style="color:var(--t3)">${e.depth.toFixed(2)}m</span>
+      <span style="color:var(--t3);font-size:8.5px">${e.time}</span>
+    </div>`).join('');
+}
+
+function clearClipLog(){clipLog=[];buildClipLog();}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DEBUG VISUALISATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+let debugBBoxHelpers=[];
+let debugNormalHelpers=[];
+let debugVertexObjects=[];
+let debugWireActive=false;
+let debugSavedMats=new Map(); // for wireAll toggle
+
+function toggleBBoxAll(on){
+  debugBBoxHelpers.forEach(h=>scene.remove(h));
+  debugBBoxHelpers=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      const box=new THREE.BoxHelper(o.mesh,0x00ff88);
+      scene.add(box);debugBBoxHelpers.push(box);
+    });
+    // Update each frame — hook into animate via global flag
+    notify('Bounding boxes ON');
+  } else notify('Bounding boxes OFF');
+}
+
+function toggleNormals(on){
+  debugNormalHelpers.forEach(h=>scene.remove(h));
+  debugNormalHelpers=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      // Approximate face normals with vertex normal helper
+      const geo=o.mesh.geometry;
+      if(geo.attributes.normal){
+        const h=new THREE.VertexNormalsHelper(o.mesh,.22,0xffff00);
+        scene.add(h);debugNormalHelpers.push(h);
+      }
+    });
+    notify('Normals display ON');
+  } else notify('Normals display OFF');
+}
+
+function toggleVertDots(on){
+  debugVertexObjects.forEach(h=>scene.remove(h));
+  debugVertexObjects=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      const pos=o.mesh.geometry.attributes.position;
+      if(!pos)return;
+      // Deduplicate verts to avoid thousands of dots on dense meshes
+      const seen=new Set();
+      const pts=[];
+      for(let i=0;i<Math.min(pos.count,800);i++){
+        const key=`${pos.getX(i).toFixed(2)},${pos.getY(i).toFixed(2)},${pos.getZ(i).toFixed(2)}`;
+        if(seen.has(key))continue;
+        seen.add(key);
+        pts.push(new THREE.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i)));
+      }
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      const mat=new THREE.PointsMaterial({color:0xff8800,size:4,sizeAttenuation:false,depthTest:false});
+      const points=new THREE.Points(geo,mat);
+      // Apply mesh world transform
+      points.position.copy(o.mesh.position);
+      points.rotation.copy(o.mesh.rotation);
+      points.scale.copy(o.mesh.scale);
+      scene.add(points);debugVertexObjects.push(points);
+    });
+    notify('Vertex dots ON');
+  } else notify('Vertex dots OFF');
+}
+
+function toggleWireAll(on){
+  debugWireActive=on;
+  objects.forEach(o=>{
+    if(o.type!=='mesh'||!o.mesh.material)return;
+    if(on){
+      debugSavedMats.set(o.id,o.mesh.material.wireframe);
+      o.mesh.material.wireframe=true;
+    } else {
+      const saved=debugSavedMats.get(o.id);
+      o.mesh.material.wireframe=saved!==undefined?saved:false;
+    }
+  });
+  notify('Wireframe all '+(on?'ON':'OFF'));
+}
+
+function toggleOrigin(on){
+  if(axesH)axesH.visible=on;
+  if(gridH)gridH.visible=on;
+}
+
+function toggleShadowDebug(on){
+  // Tint the shadow receiving plane magenta to show shadow map coverage
+  const g=scene.children.find(c=>c.name==='__ground');
+  if(g&&g.material)g.material.color.set(on?0x440044:0x1a1a1a);
+  notify('Shadow debug '+(on?'ON':'OFF'));
+}
+
+function clearAllDebug(){
+  debugBBoxHelpers.forEach(h=>scene.remove(h));debugBBoxHelpers=[];
+  debugNormalHelpers.forEach(h=>scene.remove(h));debugNormalHelpers=[];
+  debugVertexObjects.forEach(h=>scene.remove(h));debugVertexObjects=[];
+  // Reset checkboxes
+  ['dbg-bb','dbg-norm','dbg-verts','dbg-wire','dbg-shad'].forEach(id=>{
+    const el=$(id);if(el)el.checked=false;
+  });
+  $('dbg-origin').checked=true;
+  if(axesH)axesH.visible=true;if(gridH)gridH.visible=true;
+  toggleWireAll(false);
+  const g=scene.children.find(c=>c.name==='__ground');
+  if(g&&g.material)g.material.color.set(0x1a1a1a);
+  notify('All debug overlays cleared');
+}
+
+function refreshDebugStats(){
+  let meshCount=0,lightCount=0,totalVerts=0,totalPolys=0,physBodies=0;
+  objects.forEach(o=>{
+    if(o.type==='mesh'){
+      meshCount++;
+      const g=o.mesh.geometry;
+      if(g.attributes.position)totalVerts+=g.attributes.position.count;
+      if(g.index)totalPolys+=g.index.count/3;
+      else if(g.attributes.position)totalPolys+=g.attributes.position.count/3;
+    }
+    if(o.type==='light')lightCount++;
+    if(o.physEnabled)physBodies++;
+  });
+  const el=$('dbg-stats');if(!el)return;
+  el.innerHTML=`
+    <div>Objects: <b style="color:var(--t1)">${objects.length}</b></div>
+    <div>Meshes: <b style="color:var(--t1)">${meshCount}</b></div>
+    <div>Lights: <b style="color:var(--t1)">${lightCount}</b></div>
+    <div>Total Vertices: <b style="color:var(--acc)">${totalVerts.toLocaleString()}</b></div>
+    <div>Total Polygons: <b style="color:var(--acc)">${Math.round(totalPolys).toLocaleString()}</b></div>
+    <div>Physics Bodies: <b style="color:var(--ok)">${physBodies}</b></div>
+    <div>Tethers: <b style="color:var(--ok)">${physConstraints.length}</b></div>
+    <div>Clip Ops: <b style="color:var(--dn)">${clipLog.length}</b></div>
+    <div>FPS: <b style="color:var(--t1)">${fpsCur}</b></div>
+    <div>Renderer: <b style="color:var(--t1)">WebGL ${renderer.capabilities.isWebGL2?2:1}</b></div>
+  `;
+}
 function addMesh(type,silent=false){
   closeMenus();
   let geo;
@@ -1392,34 +1974,27 @@ function rndColor(){
   return new THREE.Color().setHSL(h,.7,.5);
 }
 
-// ── SELECTION ──────────────────────────────────────────────────────────────
-function onCanvasClick(e){
+// ── VIEWPORT CLICK HANDLER ─────────────────────────────────────────────────
+function handleViewportClick(clientX,clientY){
   const canvas=$('c3d');
   const r=canvas.getBoundingClientRect();
-  MV.x=((e.clientX-r.left)/r.width)*2-1;
-  MV.y=-((e.clientY-r.top)/r.height)*2+1;
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
   RC.setFromCamera(MV,camera);
-  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+
+  // Only intersect actual scene meshes (exclude helpers/markers)
+  const meshList=objects.map(o=>o.mesh).filter(Boolean);
+  const hits=RC.intersectObjects(meshList,false);
 
   // ── BIND MODE ──
   if(tool==='bind'){
-    if(!hits.length){
-      setBindStatus('No object there — click directly on a mesh','warn');
-      return;
-    }
-    const clicked=hits[0].object;
-    if(!bindFirst){
-      bindFirst=clicked;
-      select(clicked);
-      setBindStatus('✓ First object selected — now click the second','ok');
-    } else if(clicked!==bindFirst){
-      createBind(bindFirst,clicked);
-      bindFirst=null;
-      setBindStatus('⛓ Tether created! Press B for another','ok');
-      setTimeout(()=>setTool('select'),250);
-    } else {
-      setBindStatus('Same object — click a different one','warn');
-    }
+    handleBindClick(hits);
+    return;
+  }
+
+  // ── CLIP MODE ──
+  if(tool==='clip'){
+    handleClipClick(hits);
     return;
   }
 
@@ -1430,6 +2005,7 @@ function onCanvasClick(e){
     deselect();
   }
 }
+
 
 function select(mesh){
   if(sel&&sel!==mesh)unhilite(sel);
@@ -1479,14 +2055,16 @@ function setTool(t){
   const prevTool=tool;
   tool=t;
   if(prevTool==='bind'&&t!=='bind'){cancelBind();}
-  if(t==='select'||t==='bind'){
+  if(prevTool==='clip'&&t!=='clip'){cancelClip();}
+  if(t==='select'||t==='bind'||t==='clip'){
     tfCtrl.detach();
   } else if(sel){
     tfCtrl.attach(sel);
     tfCtrl.setMode(t==='move'?'translate':t==='rotate'?'rotate':'scale');
   }
   const hints={select:'SELECT',move:'MOVE (G)',rotate:'ROTATE (R)',scale:'SCALE (S)',
-    bind:'BIND ⛓ — click object 1, then object 2'};
+    bind:'BIND ⛓ — click obj A surface, then obj B',
+    clip:'CLIP ✂ — click surface on A, then click B to clip in'};
   $('hud-tool').textContent=hints[t]||t.toUpperCase();
   $('c3d').focus();
 }
@@ -1518,6 +2096,7 @@ function onKD(e){
       const modes=['solid','wireframe','material','rendered'];
       setShade(modes[(modes.indexOf(shadeMode)+1)%4]);break;
     case 'b':case'B':setTool('bind');showPane('physics');break;
+    case 'c':case'C':setTool('clip');showPane('debug');break;
     case '[':startRewind();break;
   }
 }
@@ -1830,10 +2409,11 @@ function togObjVis(id,e){
 
 // ── PANE SWITCHING ─────────────────────────────────────────────────────────
 function showPane(name){
-  const panes=['scene','object','material','physics','render'];
+  const panes=['scene','object','material','physics','render','debug'];
   panes.forEach(p=>{$('pane-'+p).classList.toggle('act',p===name);});
   document.querySelectorAll('.ptab').forEach((b,i)=>b.classList.toggle('act',panes[i]===name));
   if(name==='object'||name==='material'||name==='physics')refreshPropsPane();
+  if(name==='debug')refreshDebugStats();
 }
 
 function togPg(hdr){
