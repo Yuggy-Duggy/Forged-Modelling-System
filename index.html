@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ForgeStudio 3D — Professional Modelling Suite</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none;user-select:none;}
+:root{
+--bg0:#111;--bg1:#1a1a1a;--bg2:#222;--bg3:#2c2c2c;--bg4:#363636;
+--acc:#e36d2f;--acc2:#f5a623;--acca:rgba(227,109,47,.25);
+--t1:#ddd;--t2:#999;--t3:#555;
+--brd:#2a2a2a;--brd2:#404040;
+--inf:#3a8fd4;--ok:#3aad5e;--dn:#d44040;--warn:#d4963a;
+}
+html,body{width:100vw;height:100vh;overflow:hidden;background:var(--bg0);color:var(--t1);font-family:'JetBrains Mono',monospace;font-size:11px;}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-areas:"mbar mbar mbar""lbar vp rp""sbar sbar sbar";
+  grid-template-rows:26px 1fr 20px;grid-template-columns:42px 1fr 272px;height:100vh;}
+
+/* ── LOADING ── */
+#ld{position:fixed;inset:0;z-index:9999;background:#080808;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;}
+.ld-logo{font-size:26px;font-weight:700;letter-spacing:8px;color:var(--acc);}
+.ld-sub{font-size:9px;letter-spacing:4px;color:var(--t3);}
+.ld-bar{width:200px;height:1px;background:var(--bg3);margin:16px 0 4px;}
+.ld-prog{height:100%;background:var(--acc);width:0;transition:width .3s;}
+.ld-msg{font-size:9px;color:var(--t3);letter-spacing:1px;}
+
+/* ── MENUBAR ── */
+#mbar{grid-area:mbar;background:var(--bg1);border-bottom:1px solid var(--brd);display:flex;
+  align-items:center;padding:0 6px;gap:1px;z-index:200;}
+.logo-txt{color:var(--acc);font-weight:700;font-size:12px;letter-spacing:3px;margin-right:8px;}
+.logo-txt em{color:var(--t3);font-style:normal;font-weight:300;}
+.mnu{background:none;border:none;color:var(--t2);cursor:pointer;padding:2px 8px;border-radius:3px;
+  font:11px 'JetBrains Mono',monospace;position:relative;}
+.mnu:hover,.mnu.open{background:var(--bg3);color:var(--t1);}
+.drop{display:none;position:absolute;top:100%;left:0;min-width:200px;background:#1c1c1c;
+  border:1px solid var(--brd2);border-radius:4px;z-index:9999;padding:2px;
+  box-shadow:0 12px 40px rgba(0,0,0,.8);}
+.drop.vis{display:block;}
+.di{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
+  cursor:pointer;border-radius:3px;gap:20px;color:var(--t1);}
+.di:hover{background:var(--bg4);}
+.dsc{font-size:9px;color:var(--t3);}
+.dsep{height:1px;background:var(--brd);margin:2px 0;}
+.dcat{font-size:8px;letter-spacing:1.5px;color:var(--t3);padding:3px 10px 1px;}
+.mr{margin-left:auto;display:flex;align-items:center;gap:5px;}
+.shade-row{display:flex;background:var(--bg0);border:1px solid var(--brd);border-radius:3px;overflow:hidden;}
+.shb{background:none;border:none;border-right:1px solid var(--brd);color:var(--t3);
+  padding:1px 7px;cursor:pointer;font:10px 'JetBrains Mono',monospace;}
+.shb:last-child{border-right:none;}
+.shb:hover:not(.act){color:var(--t1);background:var(--bg3);}
+.shb.act{background:var(--acc);color:#fff;}
+.phys-tog{padding:1px 8px;border-radius:3px;border:1px solid var(--ok);
+  background:rgba(58,173,94,.1);color:var(--ok);cursor:pointer;
+  font:10px 'JetBrains Mono',monospace;transition:.15s all;}
+.phys-tog.running{border-color:var(--dn);background:rgba(212,64,64,.1);color:var(--dn);}
+
+/* ── LEFT BAR ── */
+#lbar{grid-area:lbar;background:var(--bg1);border-right:1px solid var(--brd);
+  display:flex;flex-direction:column;align-items:center;padding:4px 3px;gap:1px;}
+.tb{width:34px;height:34px;background:none;border:none;color:var(--t3);cursor:pointer;
+  border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;
+  position:relative;transition:.12s;}
+.tb:hover{background:var(--bg3);color:var(--t1);}
+.tb.act{background:var(--acc);color:#fff;}
+.tbsep{width:26px;height:1px;background:var(--brd);margin:2px 0;}
+.tb-tip{display:none;position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:#111;color:var(--t1);padding:3px 7px;border-radius:3px;white-space:nowrap;
+  font-size:10px;border:1px solid var(--brd2);z-index:9999;pointer-events:none;}
+.tb:hover .tb-tip{display:block;}
+
+/* ── VIEWPORT ── */
+#vp{grid-area:vp;position:relative;background:#0d0d0d;overflow:hidden;}
+#c3d{width:100%;height:100%;display:block;outline:none;cursor:crosshair;}
+.vp-hud-tl{position:absolute;top:8px;left:8px;display:flex;gap:4px;pointer-events:all;}
+.vp-hud-tr{position:absolute;top:8px;right:8px;text-align:right;pointer-events:none;line-height:1.9;}
+.vp-hud-tr div{font-size:9.5px;color:rgba(200,200,200,.5);}
+.vpb{padding:2px 6px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.07);
+  color:var(--t2);cursor:pointer;border-radius:3px;font:10px 'JetBrains Mono',monospace;
+  backdrop-filter:blur(4px);}
+.vpb:hover:not(.act){color:var(--t1);background:rgba(255,255,255,.07);}
+.vpb.act{background:var(--acc);border-color:var(--acc);color:#fff;}
+#gizmo{position:absolute;bottom:10px;right:10px;width:66px;height:66px;pointer-events:none;}
+.vp-selbox{position:absolute;border:1px dashed rgba(100,160,255,.7);
+  background:rgba(100,160,255,.06);pointer-events:none;display:none;}
+
+/* ── RIGHT PANEL ── */
+#rp{grid-area:rp;background:var(--bg1);border-left:1px solid var(--brd);display:flex;flex-direction:column;overflow:hidden;}
+.ptabs{display:flex;background:#161616;border-bottom:1px solid var(--brd);flex-shrink:0;}
+.ptab{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);
+  cursor:pointer;font:9px 'JetBrains Mono',monospace;letter-spacing:.3px;padding:4px 2px;
+  transition:.12s;}
+.ptab:hover:not(.act){color:var(--t1);}
+.ptab.act{color:var(--acc);border-bottom-color:var(--acc);}
+.pane{flex:1;overflow-y:auto;padding:7px;display:none;}
+.pane.act{display:block;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+/* ── PANEL COMPONENTS ── */
+.pg{background:var(--bg0);border:1px solid var(--brd);border-radius:4px;margin-bottom:4px;overflow:hidden;}
+.pgh{display:flex;justify-content:space-between;align-items:center;padding:4px 7px;
+  background:var(--bg2);cursor:pointer;font-size:9px;font-weight:600;color:var(--acc);
+  letter-spacing:1px;border-bottom:1px solid var(--brd);}
+.pgh:hover{background:var(--bg3);}
+.pgb{padding:6px 7px;}
+.pgb.coll{display:none;}
+.pr{display:flex;align-items:center;gap:4px;margin:2px 0;}
+.pl{width:68px;font-size:10px;color:var(--t3);flex-shrink:0;white-space:nowrap;}
+.inp{flex:1;background:#0c0c0c;border:1px solid var(--brd);color:var(--t1);padding:2px 4px;
+  border-radius:3px;font:10px 'JetBrains Mono',monospace;outline:none;min-width:0;}
+.inp:focus{border-color:var(--acc);}
+.inp3{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;}
+.inp3 small{display:block;font-size:8px;color:var(--t3);text-align:center;}
+.inp3 .inp{width:100%;}
+.chk{width:13px;height:13px;accent-color:var(--acc);cursor:pointer;}
+.sldr{flex:1;accent-color:var(--acc);height:13px;cursor:pointer;}
+.slv{width:30px;text-align:right;color:var(--t3);font-size:9.5px;flex-shrink:0;}
+.clr{flex:1;height:20px;border:1px solid var(--brd);border-radius:3px;cursor:pointer;padding:0;}
+.sel{flex:1;background:#0c0c0c;border:1px solid var(--brd);color:var(--t1);padding:2px 3px;
+  border-radius:3px;font:10px 'JetBrains Mono',monospace;outline:none;}
+.sel:focus{border-color:var(--acc);}
+.btn{width:100%;padding:3px 6px;background:var(--bg2);border:1px solid var(--brd);color:var(--t1);
+  border-radius:3px;cursor:pointer;font:10px 'JetBrains Mono',monospace;text-align:center;
+  margin:1px 0;transition:.12s;}
+.btn:hover{background:var(--bg3);}
+.btn.acc{border-color:var(--acc);color:var(--acc);}
+.btn.acc:hover{background:var(--acc);color:#fff;}
+.btn.ok{border-color:var(--ok);color:var(--ok);}
+.btn.ok:hover{background:var(--ok);color:#fff;}
+.btn.dn{border-color:var(--dn);color:var(--dn);}
+.btn.dn:hover{background:var(--dn);color:#fff;}
+.btn.inf{border-color:var(--inf);color:var(--inf);}
+.btn.inf:hover{background:var(--inf);color:#fff;}
+.btn2g{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.btn3g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;}
+.mat-ball{width:100%;height:72px;border-radius:4px;border:1px solid var(--brd);
+  margin-bottom:7px;background:radial-gradient(circle at 33% 30%,#666,#111);cursor:pointer;}
+.mod-row{display:flex;justify-content:space-between;align-items:center;padding:2px 5px;
+  background:var(--bg2);border-radius:3px;margin:1px 0;font-size:10px;}
+.mod-x{background:none;border:none;color:var(--dn);cursor:pointer;font-size:11px;padding:0 2px;}
+.es{color:var(--t3);text-align:center;padding:16px 8px;font-size:10.5px;line-height:1.9;}
+.ol-row{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:3px;
+  cursor:pointer;margin:1px 0;}
+.ol-row:hover{background:var(--bg3);}
+.ol-row.sel{background:var(--inf) !important;}
+.ol-row.sel .ol-nm{color:#fff;}
+.ol-nm{flex:1;font-size:10.5px;color:var(--t1);}
+.ol-ico{font-size:11px;width:14px;text-align:center;}
+.ol-vis{background:none;border:none;color:var(--t3);cursor:pointer;padding:0 1px;font-size:10px;}
+.ol-row.hid .ol-nm{text-decoration:line-through;opacity:.4;}
+
+/* ── STATUS ── */
+#sbar{grid-area:sbar;background:#161616;border-top:1px solid var(--brd);display:flex;
+  align-items:center;padding:0 8px;gap:12px;font-size:9.5px;color:var(--t3);}
+.sk{display:flex;gap:3px;align-items:center;}
+.ky{background:#111;border:1px solid var(--brd2);border-radius:2px;padding:0 3px;
+  color:var(--t1);font-size:9px;}
+.pi-ind{margin-left:auto;padding:0 7px;border-radius:3px;font-size:9.5px;
+  display:flex;align-items:center;gap:3px;}
+.pi-ind.off{color:var(--ok);border:1px solid rgba(58,173,94,.4);background:rgba(58,173,94,.08);}
+.pi-ind.on{color:var(--dn);border:1px solid rgba(212,64,64,.4);background:rgba(212,64,64,.08);}
+#sb-sel{font-size:9.5px;margin-left:6px;}
+
+/* ── CTX MENU ── */
+#ctx{display:none;position:fixed;background:#1c1c1c;border:1px solid var(--brd2);
+  border-radius:4px;z-index:9999;min-width:168px;padding:2px;box-shadow:0 10px 35px rgba(0,0,0,.8);}
+.cxi{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;
+  cursor:pointer;border-radius:3px;gap:18px;color:var(--t1);font-size:10.5px;}
+.cxi:hover{background:var(--bg4);}
+.cxsc{font-size:9px;color:var(--t3);}
+.cxsep{height:1px;background:var(--brd);margin:2px 0;}
+.cxcat{font-size:8px;letter-spacing:1.5px;color:var(--t3);padding:2px 10px;}
+
+/* ── NOTIF ── */
+#notif{display:none;position:fixed;bottom:34px;left:50%;transform:translateX(-50%);
+  background:#1c1c1c;border:1px solid var(--acc);color:var(--t1);padding:4px 14px;
+  border-radius:4px;font-size:10.5px;z-index:9999;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);pointer-events:none;}
+
+/* ── RENDER MODAL ── */
+#rmodal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9990;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+#rmodal.open{display:flex;}
+#rcanvas{border:1px solid var(--brd2);}
+.racts{display:flex;gap:8px;}
+.ract{padding:5px 14px;border:1px solid var(--brd2);background:var(--bg2);color:var(--t1);
+  border-radius:3px;cursor:pointer;font:11px 'JetBrains Mono',monospace;}
+.ract:hover{background:var(--bg3);}
+.ract.ok{border-color:var(--acc);color:var(--acc);}
+.ract.ok:hover{background:var(--acc);color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ld">
+  <div class="ld-logo">⬡ FORGE</div>
+  <div class="ld-sub">STUDIO 3D PROFESSIONAL</div>
+  <div class="ld-bar"><div class="ld-prog" id="ldp"></div></div>
+  <div class="ld-msg" id="ldm">Initialising engine...</div>
+</div>
+
+<div id="app">
+
+<!-- ── MENUBAR ── -->
+<div id="mbar">
+  <span class="logo-txt">FORGE<em>STUDIO</em></span>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-File" onclick="openMenu('File')">File</button>
+    <div class="drop" id="drop-File">
+      <div class="di" onclick="newScene()">New Scene<span class="dsc">Ctrl+N</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="exportOBJ()">Export OBJ</div>
+      <div class="di" onclick="exportScene()">Export HTML</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="renderFull()">Render Image<span class="dsc">F12</span></div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Edit" onclick="openMenu('Edit')">Edit</button>
+    <div class="drop" id="drop-Edit">
+      <div class="di" onclick="undo()">Undo<span class="dsc">Ctrl+Z</span></div>
+      <div class="di" onclick="redo()">Redo<span class="dsc">Ctrl+Y</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="dupSel()">Duplicate<span class="dsc">Shift+D</span></div>
+      <div class="di" onclick="delSel()">Delete<span class="dsc">X</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="selAll()">Select All<span class="dsc">A</span></div>
+      <div class="di" onclick="deselAll()">Deselect All<span class="dsc">Alt+A</span></div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Add" onclick="openMenu('Add')">Add</button>
+    <div class="drop" id="drop-Add" style="min-width:165px">
+      <div class="dcat">MESH</div>
+      <div class="di" onclick="addMesh('cube')">▣ Cube</div>
+      <div class="di" onclick="addMesh('sphere')">● UV Sphere</div>
+      <div class="di" onclick="addMesh('icosphere')">◈ Icosphere</div>
+      <div class="di" onclick="addMesh('cylinder')">⬭ Cylinder</div>
+      <div class="di" onclick="addMesh('plane')">▬ Plane</div>
+      <div class="di" onclick="addMesh('torus')">◎ Torus</div>
+      <div class="di" onclick="addMesh('cone')">△ Cone</div>
+      <div class="di" onclick="addMesh('torus_knot')">∞ Torus Knot</div>
+      <div class="di" onclick="addMesh('lathe')">◗ Lathe</div>
+      <div class="di" onclick="addMesh('monkey')">☺ Monkey</div>
+      <div class="dsep"></div>
+      <div class="dcat">LIGHT</div>
+      <div class="di" onclick="addLight('point')">✦ Point</div>
+      <div class="di" onclick="addLight('spot')">▽ Spot</div>
+      <div class="di" onclick="addLight('sun')">☀ Sun</div>
+      <div class="di" onclick="addLight('area')">▭ Area</div>
+      <div class="di" onclick="addLight('hemi')">◑ Hemisphere</div>
+      <div class="dsep"></div>
+      <div class="dcat">CAMERA</div>
+      <div class="di" onclick="addCamera()">📷 Camera</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Object" onclick="openMenu('Object')">Object</button>
+    <div class="drop" id="drop-Object">
+      <div class="di" onclick="applyMod('subsurf')">Subdivide Surface</div>
+      <div class="di" onclick="applyMod('bevel')">Bevel</div>
+      <div class="di" onclick="applyMod('solidify')">Solidify</div>
+      <div class="di" onclick="applyMod('wireframe')">Wireframe Mod</div>
+      <div class="di" onclick="applyMod('mirror')">Mirror</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="dupSel()">Duplicate<span class="dsc">Shift+D</span></div>
+      <div class="di" onclick="delSel()">Delete<span class="dsc">X</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="applyTransforms()">Apply Transforms</div>
+      <div class="di" onclick="setOriginCenter()">Origin to Center</div>
+      <div class="di" onclick="mirrorX()">Mirror X</div>
+      <div class="di" onclick="mirrorY()">Mirror Y</div>
+      <div class="di" onclick="mirrorZ()">Mirror Z</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togglePhysSel()">Toggle Physics</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-View" onclick="openMenu('View')">View</button>
+    <div class="drop" id="drop-View">
+      <div class="di" onclick="setView('front')">Front<span class="dsc">Num1</span></div>
+      <div class="di" onclick="setView('back')">Back</div>
+      <div class="di" onclick="setView('right')">Right<span class="dsc">Num3</span></div>
+      <div class="di" onclick="setView('left')">Left</div>
+      <div class="di" onclick="setView('top')">Top<span class="dsc">Num7</span></div>
+      <div class="di" onclick="setView('bottom')">Bottom</div>
+      <div class="di" onclick="setView('camera')">Camera<span class="dsc">Num0</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="focusSel()">Focus Selected<span class="dsc">F</span></div>
+      <div class="di" onclick="resetCam()">Reset View<span class="dsc">Home</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togGrid()">Toggle Grid</div>
+      <div class="di" onclick="togAxes()">Toggle Axes</div>
+    </div>
+  </div>
+
+  <div style="position:relative">
+    <button class="mnu" id="m-Render" onclick="openMenu('Render')">Render</button>
+    <div class="drop" id="drop-Render">
+      <div class="di" onclick="renderFull()">Render Image<span class="dsc">F12</span></div>
+      <div class="dsep"></div>
+      <div class="di" onclick="setRQ('low')">Quality: Low (Fast)</div>
+      <div class="di" onclick="setRQ('med')">Quality: Medium</div>
+      <div class="di" onclick="setRQ('high')">Quality: Ultra</div>
+      <div class="dsep"></div>
+      <div class="di" onclick="togShadows()">Toggle Shadows</div>
+      <div class="di" onclick="togFog()">Toggle Fog</div>
+    </div>
+  </div>
+
+  <div class="mr">
+    <div class="shade-row">
+      <button class="shb act" id="shb-solid" onclick="setShade('solid')">◈ Solid</button>
+      <button class="shb" id="shb-wireframe" onclick="setShade('wireframe')">⬡ Wire</button>
+      <button class="shb" id="shb-material" onclick="setShade('material')">◉ Material</button>
+      <button class="shb" id="shb-rendered" onclick="setShade('rendered')">✦ Rendered</button>
+    </div>
+    <button class="phys-tog" id="ptog" onclick="togglePhysics()">⚙ Physics: OFF</button>
+  </div>
+</div>
+
+<!-- ── LEFT TOOLBAR ── -->
+<div id="lbar">
+  <button class="tb act" id="t-select" onclick="setTool('select')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-3.5 6.5z"/></svg>
+    <span class="tb-tip">Select (Q)</span>
+  </button>
+  <button class="tb" id="t-move" onclick="setTool('move')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/><path d="M8 8l-3 4 3 4M16 8l3 4-3 4"/></svg>
+    <span class="tb-tip">Move (G)</span>
+  </button>
+  <button class="tb" id="t-rotate" onclick="setTool('rotate')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+    <span class="tb-tip">Rotate (R)</span>
+  </button>
+  <button class="tb" id="t-scale" onclick="setTool('scale')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h6M3 3v6M21 3h-6M21 3v6M3 21h6M3 21v-6M21 21h-6M21 21v-6"/></svg>
+    <span class="tb-tip">Scale (S)</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" id="t-bind" onclick="setTool('bind')" style="font-size:13px">
+    ⛓
+    <span class="tb-tip">Bind/Tether (B)</span>
+  </button>
+  <button class="tb" id="t-clip" onclick="setTool('clip')" style="font-size:13px;color:var(--dn)">
+    ✂
+    <span class="tb-tip">Clip Debug (C) — merge B into A surface</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="addMesh('cube')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+    <span class="tb-tip">Add Cube</span>
+  </button>
+  <button class="tb" onclick="addMesh('sphere')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 9 0 010 18M12 3a15 9 0 000 18"/></svg>
+    <span class="tb-tip">Add Sphere</span>
+  </button>
+  <button class="tb" onclick="addMesh('cylinder')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/></svg>
+    <span class="tb-tip">Add Cylinder</span>
+  </button>
+  <button class="tb" onclick="addMesh('torus')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>
+    <span class="tb-tip">Add Torus</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="addLight('point')">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span class="tb-tip">Add Light</span>
+  </button>
+  <button class="tb" onclick="focusSel()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+    <span class="tb-tip">Focus (F)</span>
+  </button>
+  <button class="tb" onclick="resetCam()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="tb-tip">Reset View (Home)</span>
+  </button>
+  <div class="tbsep"></div>
+  <button class="tb" onclick="renderFull()" style="color:var(--acc)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <span class="tb-tip">Render (F12)</span>
+  </button>
+  <div style="flex:1"></div>
+  <button class="tb" onclick="delSel()" style="color:var(--dn)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+    <span class="tb-tip">Delete (X)</span>
+  </button>
+</div>
+
+<!-- ── VIEWPORT ── -->
+<div id="vp">
+  <canvas id="c3d" tabindex="0"></canvas>
+  <div class="vp-hud-tl">
+    <button class="vpb act" id="vpb-solid" onclick="setShade('solid')">Solid</button>
+    <button class="vpb" id="vpb-wireframe" onclick="setShade('wireframe')">Wire</button>
+    <button class="vpb" id="vpb-material" onclick="setShade('material')">Material</button>
+    <button class="vpb" id="vpb-rendered" onclick="setShade('rendered')">Rendered</button>
+  </div>
+  <div class="vp-hud-tr">
+    <div id="hud-fps">60 FPS</div>
+    <div id="hud-verts">Verts: —</div>
+    <div id="hud-sel">No Selection</div>
+    <div id="hud-mode">SOLID</div>
+    <div id="hud-tool">SELECT</div>
+    <div id="hud-rewind" style="font-weight:600;letter-spacing:1px;min-height:14px"></div>
+  </div>
+  <canvas id="gizmo"></canvas>
+  <div class="vp-selbox" id="selbox"></div>
+</div>
+
+<!-- ── RIGHT PANEL ── -->
+<div id="rp">
+  <div class="ptabs">
+    <button class="ptab act" onclick="showPane('scene')">Scene</button>
+    <button class="ptab" onclick="showPane('object')">Object</button>
+    <button class="ptab" onclick="showPane('material')">Shader</button>
+    <button class="ptab" onclick="showPane('physics')">Physics</button>
+    <button class="ptab" onclick="showPane('render')">Render</button>
+    <button class="ptab" onclick="showPane('debug')" style="color:var(--dn)">Debug</button>
+  </div>
+
+  <!-- SCENE / OUTLINER -->
+  <div class="pane act" id="pane-scene">
+    <input class="inp" id="ol-q" placeholder="Filter…" oninput="buildOutliner()" style="width:100%;margin-bottom:5px">
+    <div id="ol-list"></div>
+  </div>
+
+  <!-- OBJECT PROPERTIES -->
+  <div class="pane" id="pane-object">
+    <div id="ob-empty" class="es">Select an object<br>to view properties</div>
+    <div id="ob-body" style="display:none">
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ TRANSFORM <span>−</span></div>
+        <div class="pgb">
+          <div class="pr">
+            <span class="pl">Location</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-px" type="number" step=".1" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-py" type="number" step=".1" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-pz" type="number" step=".1" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr">
+            <span class="pl">Rotation°</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-rx" type="number" step="1" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-ry" type="number" step="1" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-rz" type="number" step="1" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr">
+            <span class="pl">Scale</span>
+            <div class="inp3">
+              <div><small>X</small><input class="inp" id="ob-sx" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+              <div><small>Y</small><input class="inp" id="ob-sy" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+              <div><small>Z</small><input class="inp" id="ob-sz" type="number" step=".01" min=".001" onchange="applyTF()"></div>
+            </div>
+          </div>
+          <div class="pr"><span class="pl">Name</span><input class="inp" id="ob-name" type="text" onchange="renameObj()"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ VISIBILITY <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Visible</span><input type="checkbox" class="chk" id="ob-vis" checked onchange="setProp('visible',this.checked)"></div>
+          <div class="pr"><span class="pl">Wireframe</span><input type="checkbox" class="chk" id="ob-wire" onchange="setProp('wireframe',this.checked)"></div>
+          <div class="pr"><span class="pl">Cast Shadow</span><input type="checkbox" class="chk" id="ob-shad" checked onchange="setProp('castShadow',this.checked)"></div>
+          <div class="pr"><span class="pl">Recv Shadow</span><input type="checkbox" class="chk" id="ob-rshad" checked onchange="setProp('receiveShadow',this.checked)"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ MODIFIERS <span>−</span></div>
+        <div class="pgb">
+          <div class="btn2g" style="margin-bottom:4px">
+            <button class="btn" onclick="applyMod('subsurf')">+ Subdivide</button>
+            <button class="btn" onclick="applyMod('bevel')">+ Bevel</button>
+            <button class="btn" onclick="applyMod('solidify')">+ Solidify</button>
+            <button class="btn" onclick="applyMod('wireframe')">+ Wireframe</button>
+            <button class="btn" onclick="applyMod('mirror')">+ Mirror</button>
+            <button class="btn" onclick="applyMod('smooth')">+ Smooth</button>
+          </div>
+          <div id="mod-list"></div>
+        </div>
+      </div>
+
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ ACTIONS <span>−</span></div>
+        <div class="pgb">
+          <button class="btn acc" onclick="dupSel()">Duplicate</button>
+          <button class="btn" onclick="applyTransforms()">Apply Transforms</button>
+          <button class="btn" onclick="setOriginCenter()">Origin → Center</button>
+          <button class="btn" onclick="mirrorX()">Mirror X</button>
+          <button class="btn" onclick="mirrorY()">Mirror Y</button>
+          <button class="btn dn" onclick="delSel()">Delete Object</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MATERIAL / SHADER -->
+  <div class="pane" id="pane-material">
+    <div id="mat-empty" class="es">Select a mesh object<br>to edit its shader</div>
+    <div id="mat-body" style="display:none">
+      <div class="mat-ball" id="mat-ball"></div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ BASE <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Color</span><input type="color" class="clr" id="m-col" value="#888888" oninput="updateMat()"></div>
+          <div class="pr"><span class="pl">Type</span>
+            <select class="sel" id="m-type" onchange="updateMat()">
+              <option value="standard">Standard (PBR)</option>
+              <option value="phong">Phong</option>
+              <option value="toon">Toon / Cel</option>
+              <option value="normal">Normal</option>
+              <option value="depth">Depth</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ PBR <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Metalness</span><input type="range" class="sldr" id="m-met" min="0" max="1" step=".01" value="0" oninput="updateMat();$('v-met').textContent=fmtN(this.value)"><span class="slv" id="v-met">0.00</span></div>
+          <div class="pr"><span class="pl">Roughness</span><input type="range" class="sldr" id="m-rgh" min="0" max="1" step=".01" value=".5" oninput="updateMat();$('v-rgh').textContent=fmtN(this.value)"><span class="slv" id="v-rgh">0.50</span></div>
+          <div class="pr"><span class="pl">Opacity</span><input type="range" class="sldr" id="m-opa" min="0" max="1" step=".01" value="1" oninput="updateMat();$('v-opa').textContent=fmtN(this.value)"><span class="slv" id="v-opa">1.00</span></div>
+          <div class="pr"><span class="pl">IOR</span><input type="range" class="sldr" id="m-ior" min="1" max="3" step=".01" value="1.5" oninput="updateMat();$('v-ior').textContent=fmtN(this.value)"><span class="slv" id="v-ior">1.50</span></div>
+          <div class="pr"><span class="pl">Flat Shade</span><input type="checkbox" class="chk" id="m-flat" onchange="updateMat()"></div>
+          <div class="pr"><span class="pl">Double Side</span><input type="checkbox" class="chk" id="m-dbl" onchange="updateMat()"></div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ EMISSION <span>−</span></div>
+        <div class="pgb">
+          <div class="pr"><span class="pl">Color</span><input type="color" class="clr" id="m-ecol" value="#000000" oninput="updateMat()"></div>
+          <div class="pr"><span class="pl">Intensity</span><input type="range" class="sldr" id="m-eint" min="0" max="10" step=".1" value="0" oninput="updateMat();$('v-eint').textContent=parseFloat(this.value).toFixed(1)"><span class="slv" id="v-eint">0.0</span></div>
+        </div>
+      </div>
+      <div class="pg">
+        <div class="pgh" onclick="togPg(this)">▸ PRESETS <span>−</span></div>
+        <div class="pgb btn3g">
+          <button class="btn" onclick="applyPreset('chrome')">Chrome</button>
+          <button class="btn" onclick="applyPreset('gold')">Gold</button>
+          <button class="btn" onclick="applyPreset('glass')">Glass</button>
+          <button class="btn" onclick="applyPreset('copper')">Copper</button>
+          <button class="btn" onclick="applyPreset('rubber')">Rubber</button>
+          <button class="btn" onclick="applyPreset('neon')">Neon</button>
+          <button class="btn" onclick="applyPreset('obsidian')">Obsidian</button>
+          <button class="btn" onclick="applyPreset('plastic')">Plastic</button>
+          <button class="btn" onclick="applyPreset('ceramic')">Ceramic</button>
+          <button class="btn" onclick="applyPreset('hologram')">Hologram</button>
+          <button class="btn" onclick="applyPreset('lava')">Lava</button>
+          <button class="btn" onclick="applyPreset('wood')">Wood</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHYSICS -->
+  <div class="pane" id="pane-physics">
+    <div class="pg">
+      <div class="pgh">▸ WORLD</div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Gravity</span><input type="range" class="sldr" id="ph-grav" min="-40" max="10" step=".1" value="-9.81" oninput="setGravity(this.value);$('v-grav').textContent=parseFloat(this.value).toFixed(2)"><span class="slv" id="v-grav">-9.81</span></div>
+        <div class="pr"><span class="pl">Substeps</span><input class="inp" id="ph-sub" type="number" min="1" max="20" value="4" onchange="physSubs=+this.value"></div>
+        <div class="pr"><span class="pl">Time Scale</span><input type="range" class="sldr" id="ph-ts" min="0" max="3" step=".05" value="1" oninput="physTS=+this.value;$('v-ts').textContent=parseFloat(this.value).toFixed(2)"><span class="slv" id="v-ts">1.00</span></div>
+        <button class="btn ok" onclick="togglePhysics()" style="margin-top:3px">▶ Run Simulation</button>
+        <button class="btn" onclick="resetPhysics()">⏹ Reset All Bodies</button>
+        <button class="btn inf" onclick="launchAll()">⚡ Launch All Objects</button>
+        <div style="height:1px;background:var(--brd);margin:5px 0"></div>
+        <div style="font-size:9px;color:var(--t3);margin-bottom:3px">REWIND — hold <span style="background:var(--bg3);border:1px solid var(--brd2);padding:0 3px;border-radius:2px;color:var(--t1)">[</span> key to scrub backwards in time</div>
+        <button class="btn" id="btn-rewind"
+          onmousedown="startRewind()" onmouseup="endRewind()" onmouseleave="endRewind()"
+          ontouchstart="startRewind()" ontouchend="endRewind()">
+          ⏪ Rewind (hold)
+        </button>
+      </div>
+    </div>
+
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ TETHER / BIND ⛓ <span>−</span></div>
+      <div class="pgb">
+
+        <!-- SNAP MODE -->
+        <div class="pr" style="margin-bottom:5px">
+          <span class="pl">Snap Mode</span>
+          <select class="sel" id="bind-snap" onchange="bindSnapMode=this.value">
+            <option value="surface" selected>Surface (any point)</option>
+            <option value="vertex">Vertex (exact corner)</option>
+            <option value="face">Face Centre</option>
+          </select>
+        </div>
+        <div class="pr">
+          <span class="pl">Constraint</span>
+          <select class="sel" id="teth-mode" onchange="tetherMode=this.value">
+            <option value="rigid">Rigid</option>
+            <option value="spring">Spring / Elastic</option>
+          </select>
+        </div>
+
+        <!-- LIVE STEP GUIDE -->
+        <div id="bind-steps" style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:6px 8px;margin:5px 0;line-height:2.1;font-size:9.5px">
+          <div id="bs1" style="color:var(--t3)">① Click <b>anywhere on Object A</b></div>
+          <div id="bs2" style="color:var(--t3)">② Click <b>anywhere on Object B</b> — done!</div>
+        </div>
+
+        <!-- STATUS -->
+        <div id="bind-status" style="font-size:9px;margin:3px 0;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3)">
+          Press B to begin
+        </div>
+
+        <button class="btn acc" onclick="setTool('bind')">⛓ Bind Tool (B)</button>
+        <button class="btn" onclick="cancelBind()">✕ Cancel / Reset</button>
+
+        <div style="margin-top:6px;font-size:9px;color:var(--t3);letter-spacing:.5px;font-weight:600">ACTIVE TETHERS</div>
+        <div id="constraint-list" style="margin-top:3px"></div>
+      </div>
+    </div>
+
+    <div class="pg">
+      <div class="pgh">▸ SELECTED BODY</div>
+      <div class="pgb">
+        <div id="ph-empty" class="es" style="padding:8px">Select an object</div>
+        <div id="ph-body" style="display:none">
+          <div class="pr"><span class="pl">Enable</span><input type="checkbox" class="chk" id="ph-en" onchange="updatePhysProps()"></div>
+          <div class="pr"><span class="pl">Type</span>
+            <select class="sel" id="ph-type" onchange="updatePhysProps()">
+              <option value="dynamic">Dynamic</option>
+              <option value="static">Static</option>
+              <option value="kinematic">Kinematic</option>
+            </select>
+          </div>
+          <div class="pr"><span class="pl">Mass (kg)</span><input class="inp" id="ph-mass" type="number" min=".001" step=".1" value="1" onchange="updatePhysProps()"></div>
+          <div class="pr"><span class="pl">Friction</span><input type="range" class="sldr" id="ph-fric" min="0" max="1" step=".01" value=".3" oninput="updatePhysProps();$('v-fric').textContent=fmtN(this.value)"><span class="slv" id="v-fric">0.30</span></div>
+          <div class="pr"><span class="pl">Bounce</span><input type="range" class="sldr" id="ph-rest" min="0" max="1" step=".01" value=".3" oninput="updatePhysProps();$('v-rest').textContent=fmtN(this.value)"><span class="slv" id="v-rest">0.30</span></div>
+          <div class="pr"><span class="pl">Lin Damp</span><input type="range" class="sldr" id="ph-ld" min="0" max="1" step=".01" value=".05" oninput="updatePhysProps();$('v-ld').textContent=fmtN(this.value)"><span class="slv" id="v-ld">0.05</span></div>
+          <div class="pr"><span class="pl">Ang Damp</span><input type="range" class="sldr" id="ph-ad" min="0" max="1" step=".01" value=".05" oninput="updatePhysProps();$('v-ad').textContent=fmtN(this.value)"><span class="slv" id="v-ad">0.05</span></div>
+          <button class="btn acc" style="margin-top:3px" onclick="applyImpulse(0,14,0)">↑ Upward Impulse</button>
+          <button class="btn" onclick="applyImpulse((Math.random()-.5)*10,12+Math.random()*6,(Math.random()-.5)*10)">↗ Random Launch</button>
+          <button class="btn" onclick="applyImpulse(0,-20,0)">↓ Slam Down</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RENDER SETTINGS -->
+  <div class="pane" id="pane-render">
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ OUTPUT <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Width</span><input class="inp" id="r-w" type="number" value="1920"></div>
+        <div class="pr"><span class="pl">Height</span><input class="inp" id="r-h" type="number" value="1080"></div>
+        <div class="pr"><span class="pl">Format</span><select class="sel" id="r-fmt"><option>PNG</option><option>JPEG</option><option>WebP</option></select></div>
+        <div class="pr"><span class="pl">Quality</span><select class="sel" id="r-qual"><option value="low">Low (Fast)</option><option value="med" selected>Medium</option><option value="high">Ultra (Slow)</option></select></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ WORLD LIGHT <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Ambient</span><input type="color" class="clr" id="w-amb" value="#1a1a1a" oninput="updateWorld()"></div>
+        <div class="pr"><span class="pl">Amb Int</span><input type="range" class="sldr" id="w-ai" min="0" max="5" step=".05" value=".3" oninput="updateWorld();$('v-ai').textContent=fmtN(this.value)"><span class="slv" id="v-ai">0.30</span></div>
+        <div class="pr"><span class="pl">BG Color</span><input type="color" class="clr" id="w-bg" value="#111111" oninput="updateWorld()"></div>
+        <div class="pr"><span class="pl">Sun Angle</span><input type="range" class="sldr" id="w-sang" min="0" max="360" step="1" value="45" oninput="updateSun()"><span class="slv" id="v-sang">45°</span></div>
+        <div class="pr"><span class="pl">Sun Elev</span><input type="range" class="sldr" id="w-selv" min="0" max="90" step="1" value="60" oninput="updateSun()"><span class="slv" id="v-selv">60°</span></div>
+        <div class="pr"><span class="pl">Sun Int</span><input type="range" class="sldr" id="w-sint" min="0" max="5" step=".05" value="1.5" oninput="updateSun();$('v-sint').textContent=fmtN(this.value)"><span class="slv" id="v-sint">1.50</span></div>
+        <div class="pr"><span class="pl">Shadows</span><input type="checkbox" class="chk" id="w-shad" checked onchange="togShadows()"></div>
+        <div class="pr"><span class="pl">Fog</span><input type="checkbox" class="chk" id="w-fog" onchange="togFog()"></div>
+        <div class="pr"><span class="pl">Fog Density</span><input type="range" class="sldr" id="w-fogd" min="0" max=".1" step=".001" value=".02" oninput="updateFog()"></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ POST-PROCESS <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Tone Map</span><select class="sel" id="w-tone" onchange="updateTone()"><option>ACES</option><option>Cineon</option><option>Linear</option><option>Reinhard</option></select></div>
+        <div class="pr"><span class="pl">Exposure</span><input type="range" class="sldr" id="w-exp" min="0" max="4" step=".05" value="1" oninput="updateTone();$('v-exp').textContent=fmtN(this.value)"><span class="slv" id="v-exp">1.00</span></div>
+      </div>
+    </div>
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CAMERA <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">FOV</span><input type="range" class="sldr" id="c-fov" min="10" max="160" step="1" value="75" oninput="updateCam();$('v-fov').textContent=this.value+'°'"><span class="slv" id="v-fov">75°</span></div>
+        <div class="pr"><span class="pl">Near</span><input class="inp" id="c-near" type="number" value=".1" step=".01" onchange="updateCam()"></div>
+        <div class="pr"><span class="pl">Far</span><input class="inp" id="c-far" type="number" value="2000" onchange="updateCam()"></div>
+      </div>
+    </div>
+    <button class="btn acc" style="margin-top:5px" onclick="renderFull()">⚡ RENDER IMAGE (F12)</button>
+  </div>
+
+  <!-- DEBUG PANE -->
+  <div class="pane" id="pane-debug">
+
+    <!-- CLIP TOOL -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CLIP DEBUG ✂ <span>−</span></div>
+      <div class="pgb">
+        <div style="background:var(--bg2);border:1px solid rgba(212,64,64,.35);border-radius:3px;padding:7px 8px;margin-bottom:6px;line-height:1.9;font-size:9.5px;color:var(--t2)">
+          <div style="color:var(--dn);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:4px">HOW CLIP WORKS</div>
+          <div>Intentionally merges Object B's origin into a clicked surface point on Object A — causing it to clip and intersect. Good for debug, stress-testing physics, and creative glitch effects.</div>
+        </div>
+
+        <!-- Clip step guide -->
+        <div style="background:var(--bg2);border:1px solid var(--brd2);border-radius:3px;padding:6px 8px;margin-bottom:5px;line-height:2.2;font-size:9.5px">
+          <div id="clip-s1" style="color:var(--t3)">① Click surface on <b>Object A</b> (the target)</div>
+          <div id="clip-s2" style="color:var(--t3)">② Click <b>Object B</b> — it clips in</div>
+        </div>
+
+        <div id="clip-status" style="font-size:9px;padding:4px 6px;background:var(--bg2);border-radius:3px;border:1px solid var(--brd);color:var(--t3);margin-bottom:5px">
+          Press C to begin clipping
+        </div>
+
+        <!-- Clip depth -->
+        <div class="pr">
+          <span class="pl">Clip Depth</span>
+          <input type="range" class="sldr" id="clip-depth" min="-2" max="2" step=".05" value="0"
+            oninput="clipDepth=+this.value;$('v-cdepth').textContent=this.value">
+          <span class="slv" id="v-cdepth">0</span>
+        </div>
+        <div style="font-size:8.5px;color:var(--t3);margin-bottom:4px">Negative = pull out, Positive = push deeper in</div>
+
+        <button class="btn dn" onclick="setTool('clip')">✂ Clip Tool (C)</button>
+        <button class="btn" onclick="cancelClip()">✕ Cancel</button>
+      </div>
+    </div>
+
+    <!-- VISUALISATION AIDS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ VISUALISATION <span>−</span></div>
+      <div class="pgb">
+        <div class="pr"><span class="pl">Bounding Box</span><input type="checkbox" class="chk" id="dbg-bb" onchange="toggleBBoxAll(this.checked)"></div>
+        <div class="pr"><span class="pl">Face Normals</span><input type="checkbox" class="chk" id="dbg-norm" onchange="toggleNormals(this.checked)"></div>
+        <div class="pr"><span class="pl">Vertex Dots</span><input type="checkbox" class="chk" id="dbg-verts" onchange="toggleVertDots(this.checked)"></div>
+        <div class="pr"><span class="pl">Wireframe All</span><input type="checkbox" class="chk" id="dbg-wire" onchange="toggleWireAll(this.checked)"></div>
+        <div class="pr"><span class="pl">World Origin</span><input type="checkbox" class="chk" id="dbg-origin" checked onchange="toggleOrigin(this.checked)"></div>
+        <div class="pr"><span class="pl">Shadow Map</span><input type="checkbox" class="chk" id="dbg-shad" onchange="toggleShadowDebug(this.checked)"></div>
+        <button class="btn" style="margin-top:3px" onclick="clearAllDebug()">Clear All Debug</button>
+      </div>
+    </div>
+
+    <!-- SCENE STATS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ SCENE STATS <span>−</span></div>
+      <div class="pgb">
+        <div id="dbg-stats" style="font-size:9.5px;line-height:2;color:var(--t2)">
+          Open Debug tab to refresh
+        </div>
+        <button class="btn" onclick="refreshDebugStats()">↺ Refresh</button>
+      </div>
+    </div>
+
+    <!-- CLIPPED OBJECTS -->
+    <div class="pg">
+      <div class="pgh" onclick="togPg(this)">▸ CLIP LOG <span>−</span></div>
+      <div class="pgb">
+        <div id="clip-log" style="font-size:9px;color:var(--t3)">No clips yet</div>
+        <button class="btn dn" onclick="clearClipLog()" style="margin-top:3px">Clear Log</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── STATUS BAR ── -->
+<div id="sbar">
+  <span class="sk"><span class="ky">G</span> Move</span>
+  <span class="sk"><span class="ky">R</span> Rotate</span>
+  <span class="sk"><span class="ky">S</span> Scale</span>
+  <span class="sk"><span class="ky">B</span> Bind</span>
+  <span class="sk"><span class="ky">X</span> Delete</span>
+  <span class="sk"><span class="ky">Shift+D</span> Dupe</span>
+  <span class="sk"><span class="ky">F</span> Focus</span>
+  <span class="sk"><span class="ky">[ hold</span> Rewind</span>
+  <span class="sk"><span class="ky">F12</span> Render</span>
+  <span class="sk"><span class="ky">Tab</span> Shade</span>
+  <span id="sb-sel"></span>
+  <span class="pi-ind off" id="phys-ind">⚙ Simulation OFF</span>
+</div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx">
+  <div class="cxcat">TRANSFORM</div>
+  <div class="cxi" onclick="setTool('move')">Move<span class="cxsc">G</span></div>
+  <div class="cxi" onclick="setTool('rotate')">Rotate<span class="cxsc">R</span></div>
+  <div class="cxi" onclick="setTool('scale')">Scale<span class="cxsc">S</span></div>
+  <div class="cxsep"></div>
+  <div class="cxcat">OBJECT</div>
+  <div class="cxi" onclick="dupSel()">Duplicate<span class="cxsc">Shift+D</span></div>
+  <div class="cxi" onclick="delSel()">Delete<span class="cxsc">X</span></div>
+  <div class="cxsep"></div>
+  <div class="cxcat">MATERIAL</div>
+  <div class="cxi" onclick="showPane('material')">Edit Shader</div>
+  <div class="cxi" onclick="applyPreset('chrome')">→ Chrome</div>
+  <div class="cxi" onclick="applyPreset('gold')">→ Gold</div>
+  <div class="cxi" onclick="applyPreset('neon')">→ Neon</div>
+  <div class="cxi" onclick="applyPreset('glass')">→ Glass</div>
+  <div class="cxsep"></div>
+  <div class="cxcat">PHYSICS</div>
+  <div class="cxi" onclick="togglePhysSel()">Toggle Physics</div>
+  <div class="cxi" onclick="applyImpulse(0,14,0)">Impulse Up</div>
+  <div class="cxsep"></div>
+  <div class="cxi" onclick="focusSel()">Focus<span class="cxsc">F</span></div>
+  <div class="cxi" onclick="setOriginCenter()">Set Origin</div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- RENDER OUTPUT -->
+<div id="rmodal">
+  <div style="color:var(--t3);font-size:9px;letter-spacing:1px">RENDER — FORGE STUDIO 3D PROFESSIONAL</div>
+  <canvas id="rcanvas"></canvas>
+  <div class="racts">
+    <button class="ract ok" onclick="downloadRender()">⬇ Download PNG</button>
+    <button class="ract" onclick="$('rmodal').classList.remove('open')">✕ Close</button>
+  </div>
+</div>
+
+<!-- THREE.JS + CONTROLS + CANNON -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  FORGE STUDIO 3D  ·  Professional Modelling & Physics Engine
+//  Built on Three.js r128 + Cannon.js 0.6.2
+// ═══════════════════════════════════════════════════════════════════════════
+
+const $=id=>document.getElementById(id);
+const fmtN=v=>parseFloat(v).toFixed(2);
+
+// ── CORE STATE ─────────────────────────────────────────────────────────────
+let scene,camera,renderer,orbit,tfCtrl;
+let physWorld, physEnabled=false, physSubs=4, physTS=1;
+let objects=[]; // { id,name,mesh,body,meshType,type,physEnabled,mods,visible }
+let sel=null;   // currently selected THREE.Mesh
+let tool='select', shadeMode='solid';
+let undoStack=[],redoStack=[];
+let oid=0;
+let ambLight,sunLight,hemiLight;
+let gridH,axesH;
+let showGrid=true,showAxes=true;
+let renderDataURL=null;
+let lastT=0,frameN=0,fpsCur=60;
+const RC=new THREE.Raycaster();
+const MV=new THREE.Vector2();
+const swapMats=new WeakMap();
+
+// ── REWIND SYSTEM ──
+const physTape=new Map();
+const TAPE_MAX=1200;
+let rewindActive=false;
+let rewindHeads=new Map();
+let rewindWasRunning=false;
+
+// ── BIND / TETHER SYSTEM ──
+let physConstraints=[];
+let bindStep=1;          // 1 = waiting for A surface click, 2 = waiting for B surface click
+let bindObjA=null;       // first THREE.Mesh
+let bindWorldA=null;     // anchor in WORLD space on A (THREE.Vector3)
+let bindMarkerA=null;    // orange sphere at anchor A
+let bindHoverMarker=null;// preview dot that follows cursor
+let bindSnapMode='surface'; // 'surface'|'vertex'|'face'
+let cid=0;
+let tetherMode='rigid';
+let tetherMaxLen=0;
+
+// ── DRAG VELOCITY TRACKING ──
+let dragPosHistory=[];
+
+// ── LOADING ────────────────────────────────────────────────────────────────
+const LDM=['Initialising engine...','Loading physics world...','Building shaders...','Compiling scene graph...','Ready!'];
+let ldStep=0;
+function ldTick(){
+  if(ldStep>=LDM.length-1)return;
+  ldStep++;
+  $('ldp').style.width=(ldStep/(LDM.length-1)*100)+'%';
+  $('ldm').textContent=LDM[ldStep];
+}
+const ldInt=setInterval(()=>{ldTick();if(ldStep>=LDM.length-1){clearInterval(ldInt);setTimeout(hideLd,600);}},380);
+function hideLd(){const el=$('ld');el.style.transition='opacity .5s';el.style.opacity='0';setTimeout(()=>el.remove(),520);}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+function init(){
+  const canvas=$('c3d'), vp=$('vp');
+  const W=vp.clientWidth, H=vp.clientHeight;
+
+  // Scene
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x111111);
+
+  // Camera
+  camera=new THREE.PerspectiveCamera(75,W/H,0.1,2000);
+  camera.position.set(6,5,9);
+  camera.lookAt(0,0,0);
+
+  // Renderer
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+  renderer.setSize(W,H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.physicallyCorrectLights=true;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1;
+  renderer.outputEncoding=THREE.sRGBEncoding;
+
+  // OrbitControls
+  orbit=new THREE.OrbitControls(camera,canvas);
+  orbit.enableDamping=true;
+  orbit.dampingFactor=.055;
+  orbit.minDistance=.4;
+  orbit.maxDistance=600;
+
+  // TransformControls
+  tfCtrl=new THREE.TransformControls(camera,canvas);
+  tfCtrl.addEventListener('dragging-changed',e=>{
+    orbit.enabled=!e.value;
+    if(e.value){
+      // Drag starting — reset velocity history
+      dragPosHistory=[];
+    } else {
+      // Drag ending — if physics is on, apply estimated throw velocity so object falls
+      if(sel&&physEnabled){
+        const o=findO(sel);
+        if(o&&o.body&&o.type==='mesh'){
+          // Auto-enable physics so it falls from wherever it was dropped
+          if(!o.physEnabled){
+            o.physEnabled=true;
+            try{physWorld.addBody(o.body);}catch(ex){}
+            $('ph-en').checked=true;
+          }
+          // Sync body position to mesh (where user dragged it)
+          o.body.position.set(sel.position.x,sel.position.y,sel.position.z);
+          o.body.quaternion.set(sel.quaternion.x,sel.quaternion.y,sel.quaternion.z,sel.quaternion.w);
+          // Estimate velocity from recorded position history
+          if(dragPosHistory.length>=2){
+            const p0=dragPosHistory[0], p1=dragPosHistory[dragPosHistory.length-1];
+            const dtD=(p1.t-p0.t)/1000;
+            if(dtD>0.008){
+              o.body.velocity.set(
+                (p1.x-p0.x)/dtD*0.85,
+                (p1.y-p0.y)/dtD*0.85,
+                (p1.z-p0.z)/dtD*0.85
+              );
+            }
+          }
+          o.body.wakeUp();
+          physTape.delete(o.id); // fresh tape from new position
+        }
+      }
+      dragPosHistory=[];
+    }
+  });
+  tfCtrl.addEventListener('objectChange',()=>{
+    syncTFInputs();
+    if(sel){
+      const o=findO(sel);
+      if(o&&o.body&&o.physEnabled){
+        // Track position for velocity estimation (physics drop)
+        dragPosHistory.push({x:sel.position.x,y:sel.position.y,z:sel.position.z,t:performance.now()});
+        if(dragPosHistory.length>8)dragPosHistory.shift();
+        // Keep physics body synced to mesh while dragging
+        o.body.position.set(sel.position.x,sel.position.y,sel.position.z);
+        o.body.quaternion.set(sel.quaternion.x,sel.quaternion.y,sel.quaternion.z,sel.quaternion.w);
+      }
+      if(sel.userData.isLight)sel.userData.lightRef.position.copy(sel.position);
+    }
+  });
+  scene.add(tfCtrl);
+
+  // Lights
+  ambLight=new THREE.AmbientLight(0x1a1a1a,.3);
+  scene.add(ambLight);
+
+  sunLight=new THREE.DirectionalLight(0xffffff,1.5);
+  sunLight.position.set(8,15,8);
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(2048,2048);
+  sunLight.shadow.camera.left=-30;sunLight.shadow.camera.right=30;
+  sunLight.shadow.camera.top=30;sunLight.shadow.camera.bottom=-30;
+  sunLight.shadow.camera.near=.5;sunLight.shadow.camera.far=200;
+  sunLight.shadow.bias=-.0004;
+  scene.add(sunLight);
+
+  hemiLight=new THREE.HemisphereLight(0x8cb2d4,0x2c3a24,.45);
+  scene.add(hemiLight);
+
+  // Grid & Axes
+  gridH=new THREE.GridHelper(40,40,0x2a2a2a,0x1e1e1e);
+  gridH.position.y=-.001;
+  scene.add(gridH);
+  axesH=new THREE.AxesHelper(2);
+  scene.add(axesH);
+
+  // Physics world
+  physWorld=new CANNON.World();
+  physWorld.gravity.set(0,-9.81,0);
+  physWorld.broadphase=new CANNON.SAPBroadphase(physWorld);
+  physWorld.solver.iterations=20;
+  physWorld.allowSleep=true;
+
+  // Ground plane
+  const gBody=new CANNON.Body({mass:0,shape:new CANNON.Plane()});
+  gBody.quaternion.setFromEuler(-Math.PI/2,0,0);
+  physWorld.addBody(gBody);
+  const gMesh=new THREE.Mesh(
+    new THREE.PlaneGeometry(40,40),
+    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.9,metalness:0})
+  );
+  gMesh.rotation.x=-Math.PI/2;
+  gMesh.receiveShadow=true;
+  gMesh.name='__ground';
+  scene.add(gMesh);
+
+  // Gizmo
+  initGizmo();
+
+  // Events
+  new ResizeObserver(onResize).observe(vp);
+  canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(sel)showCtx(e.clientX,e.clientY);});
+
+  // ── CLICK DETECTION ─────────────────────────────────────────────────────
+  // Use pointerdown/pointerup on the canvas only.
+  // We guard with tfCtrl.dragging so gizmo drags never trigger selection.
+  let _pd={x:0,y:0};
+  canvas.addEventListener('pointerdown',e=>{if(e.button===0){_pd.x=e.clientX;_pd.y=e.clientY;}});
+  canvas.addEventListener('pointerup',e=>{
+    if(e.button!==0)return;
+    if(tfCtrl.dragging)return;
+    const dx=e.clientX-_pd.x, dy=e.clientY-_pd.y;
+    if(dx*dx+dy*dy>100)return;
+    handleViewportClick(e.clientX,e.clientY);
+  });
+  canvas.addEventListener('pointermove',e=>{
+    if(tool==='bind')updateBindHover(e.clientX,e.clientY);
+    else if(tool==='clip')updateClipHover(e.clientX,e.clientY);
+    else {clearBindHover();clearClipHover();}
+  });
+
+  // Close menus on any outside click
+  document.addEventListener('pointerdown',e=>{
+    if(!e.target.closest('.drop')&&!e.target.classList.contains('mnu'))closeMenus();
+    if(!e.target.closest('#ctx'))$('ctx').style.display='none';
+  });
+  document.addEventListener('keydown',onKD);
+  document.addEventListener('keyup',onKU);
+
+  // Default scene
+  defaultScene();
+  animate();
+  notify('ForgeStudio 3D ready ⬡');
+}
+
+function defaultScene(){
+  addMesh('cube',true);
+  const o=objects[objects.length-1];
+  o.mesh.position.set(0,0.6,0);
+  syncTFInputs();
+  applyPreset('chrome',false);
+  notify('');
+}
+
+// ── ANIMATION LOOP ─────────────────────────────────────────────────────────
+function animate(t=0){
+  requestAnimationFrame(animate);
+  const dt=Math.min((t-lastT)/1000,.05);
+  lastT=t;
+
+  frameN++;
+  if(frameN%20===0){fpsCur=Math.round(1/(dt||.016));$('hud-fps').textContent=fpsCur+' FPS';}
+
+  if(rewindActive){
+    // ── REWIND: step all taped objects backwards ──
+    let anyLeft=false;
+    objects.forEach(o=>{
+      if(!o.physEnabled||!o.body)return;
+      const tape=physTape.get(o.id);
+      if(!tape||!tape.length)return;
+      let head=rewindHeads.get(o.id)??tape.length-1;
+      // step back 2 frames per render frame for 2× rewind speed
+      head=Math.max(0,head-2);
+      rewindHeads.set(o.id,head);
+      const f=tape[head];
+      if(f){
+        o.mesh.position.set(f.px,f.py,f.pz);
+        o.mesh.quaternion.set(f.qx,f.qy,f.qz,f.qw);
+      }
+      if(head>0)anyLeft=true;
+    });
+    updateRewindHUD(true);
+    if(!anyLeft){
+      // Reached the beginning — stop rewinding automatically
+      endRewind();
+    }
+  } else if(physEnabled&&dt>0){
+    // ── FORWARD SIMULATION: step + record ──
+    physWorld.step(1/60,dt*physTS,physSubs);
+    objects.forEach(o=>{
+      if(!o.physEnabled||!o.body)return;
+      bodyToMesh(o);
+      let tape=physTape.get(o.id);
+      if(!tape){tape=[];physTape.set(o.id,tape);}
+      tape.push({
+        px:o.mesh.position.x,py:o.mesh.position.y,pz:o.mesh.position.z,
+        qx:o.mesh.quaternion.x,qy:o.mesh.quaternion.y,qz:o.mesh.quaternion.z,qw:o.mesh.quaternion.w
+      });
+      if(tape.length>TAPE_MAX)tape.shift();
+    });
+    updateRewindHUD(false);
+  }
+
+  // ── Update tether lines anchor-to-anchor ──
+  physConstraints.forEach(c=>{
+    if(!c.objA.mesh||!c.objB.mesh)return;
+    // Convert body-local pivots back to world space for the visual line
+    const bA=c.objA.body, bB=c.objB.body;
+    const wA=new THREE.Vector3(),wB=new THREE.Vector3();
+    const qA=new THREE.Quaternion(bA.quaternion.x,bA.quaternion.y,bA.quaternion.z,bA.quaternion.w);
+    const qB=new THREE.Quaternion(bB.quaternion.x,bB.quaternion.y,bB.quaternion.z,bB.quaternion.w);
+    wA.set(c.pivA.x,c.pivA.y,c.pivA.z).applyQuaternion(qA)
+      .add(new THREE.Vector3(bA.position.x,bA.position.y,bA.position.z));
+    wB.set(c.pivB.x,c.pivB.y,c.pivB.z).applyQuaternion(qB)
+      .add(new THREE.Vector3(bB.position.x,bB.position.y,bB.position.z));
+    c.line.geometry.setFromPoints([wA,wB]);
+    c.line.geometry.attributes.position.needsUpdate=true;
+  });
+
+  // Update debug helpers
+  debugBBoxHelpers.forEach(h=>h.update&&h.update());
+  debugNormalHelpers.forEach(h=>h.update&&h.update());
+  orbit.update();
+  drawGizmo();
+  renderer.render(scene,camera);
+  updateHUD();
+}
+
+// ── PHYSICS ────────────────────────────────────────────────────────────────
+function makeBody(meshType,mesh){
+  const s=mesh.scale;
+  let shape;
+  switch(meshType){
+    case 'sphere':case'icosphere':shape=new CANNON.Sphere(.72*Math.max(s.x,s.y,s.z));break;
+    case 'cylinder':shape=new CANNON.Cylinder(.48*s.x,.48*s.x,.98*s.y,20);break;
+    case 'cone':shape=new CANNON.Cylinder(.01,.48*s.x,.98*s.y,20);break;
+    case 'torus':case'torus_knot':case'lathe':shape=new CANNON.Sphere(.6*Math.max(s.x,s.y));break;
+    default:shape=new CANNON.Box(new CANNON.Vec3(.48*s.x,.48*s.y,.48*s.z));
+  }
+  const b=new CANNON.Body({mass:1,shape});
+  b.position.copy(mesh.position);
+  b.quaternion.set(mesh.quaternion.x,mesh.quaternion.y,mesh.quaternion.z,mesh.quaternion.w);
+  b.linearDamping=.05;b.angularDamping=.05;
+  return b;
+}
+
+function meshToBody(o){
+  o.body.position.set(o.mesh.position.x,o.mesh.position.y,o.mesh.position.z);
+  o.body.quaternion.set(o.mesh.quaternion.x,o.mesh.quaternion.y,o.mesh.quaternion.z,o.mesh.quaternion.w);
+  o.body.velocity.setZero();o.body.angularVelocity.setZero();
+  o.body.wakeUp();
+}
+function bodyToMesh(o){
+  const p=o.body.position,q=o.body.quaternion;
+  o.mesh.position.set(p.x,p.y,p.z);
+  o.mesh.quaternion.set(q.x,q.y,q.z,q.w);
+}
+
+function togglePhysics(){
+  physEnabled=!physEnabled;
+  $('ptog').textContent='⚙ Physics: '+(physEnabled?'ON':'OFF');
+  $('ptog').className='phys-tog'+(physEnabled?' running':'');
+  $('phys-ind').textContent='⚙ Simulation '+(physEnabled?'RUNNING':'OFF');
+  $('phys-ind').className='pi-ind '+(physEnabled?'on':'off');
+  if(physEnabled){
+    objects.forEach(o=>{
+      if(o.physEnabled&&o.body){
+        try{physWorld.addBody(o.body);}catch(e){}
+        meshToBody(o);
+      }
+    });
+    notify('Physics simulation running!');
+  } else notify('Physics paused');
+}
+
+function resetPhysics(){
+  physEnabled=false;$('ptog').textContent='⚙ Physics: OFF';$('ptog').className='phys-tog';
+  $('phys-ind').textContent='⚙ Simulation OFF';$('phys-ind').className='pi-ind off';
+  [...physWorld.bodies].forEach(b=>{if(b.mass>0)try{physWorld.removeBody(b);}catch(e){}}); 
+  objects.forEach(o=>{o.physEnabled=false;});
+  physTape.clear();rewindHeads.clear();
+  removeAllBinds();cancelBind();
+  notify('Physics reset');
+}
+
+// ── REWIND CONTROLS ──────────────────────────────────────────────────────────
+function startRewind(){
+  // Need at least some tape to rewind
+  let hasTape=false;
+  objects.forEach(o=>{const t=physTape.get(o.id);if(t&&t.length>4)hasTape=true;});
+  if(!hasTape){notify('Nothing to rewind — run simulation first');return;}
+  if(rewindActive)return;
+  rewindActive=true;
+  rewindWasRunning=physEnabled;
+  // Pause simulation while rewinding
+  if(physEnabled){
+    physEnabled=false;
+    $('ptog').textContent='⚙ Physics: OFF';$('ptog').className='phys-tog';
+    $('phys-ind').textContent='⏪ REWINDING';$('phys-ind').className='pi-ind on';
+  }
+  // Set each head to the end of its tape
+  objects.forEach(o=>{
+    const tape=physTape.get(o.id);
+    if(tape&&tape.length)rewindHeads.set(o.id,tape.length-1);
+  });
+  notify('⏪ Rewinding… release [ to stop');
+}
+
+function endRewind(){
+  if(!rewindActive)return;
+  rewindActive=false;
+  // Sync physics bodies to rewound mesh positions so simulation
+  // resumes cleanly from wherever the rewind stopped
+  objects.forEach(o=>{
+    if(o.physEnabled&&o.body)meshToBody(o);
+  });
+  // Restore physics state
+  if(rewindWasRunning){
+    physEnabled=true;
+    $('ptog').textContent='⚙ Physics: ON';$('ptog').className='phys-tog running';
+    $('phys-ind').textContent='⚙ Simulation RUNNING';$('phys-ind').className='pi-ind on';
+    // Trim tape from this new point so future rewind works from here
+    objects.forEach(o=>{
+      const head=rewindHeads.get(o.id)??0;
+      const tape=physTape.get(o.id);
+      if(tape)physTape.set(o.id,tape.slice(0,head+1));
+    });
+  } else {
+    $('phys-ind').textContent='⚙ Simulation OFF';$('phys-ind').className='pi-ind off';
+  }
+  updateRewindHUD(false);
+  notify('Rewind stopped');
+}
+
+function updateRewindHUD(rewinding){
+  const el=$('hud-rewind');
+  if(!el)return;
+  if(rewinding){
+    // Show progress as average of all heads
+    let total=0,heads=0;
+    objects.forEach(o=>{
+      const tape=physTape.get(o.id);
+      if(!tape||!tape.length)return;
+      total+=(rewindHeads.get(o.id)??0)/tape.length;
+      heads++;
+    });
+    const pct=heads?Math.round((total/heads)*100):0;
+    el.textContent='⏪ REWIND '+pct+'%';
+    el.style.color='var(--warn)';
+  } else {
+    el.textContent='';
+  }
+}
+
+function setGravity(v){physWorld.gravity.set(0,parseFloat(v),0);}
+
+function updatePhysProps(){
+  if(!sel)return;
+  const o=findO(sel);if(!o||!o.body)return;
+  o.physEnabled=$('ph-en').checked;
+  const type=$('ph-type').value;
+  o.body.mass=type==='static'?0:parseFloat($('ph-mass').value)||1;
+  o.body.linearDamping=parseFloat($('ph-ld').value);
+  o.body.angularDamping=parseFloat($('ph-ad').value);
+  o.body.updateMassProperties();
+}
+
+function launchAll(){
+  if(!physEnabled)togglePhysics();
+  objects.forEach(o=>{
+    if(o.type==='mesh'&&o.body){
+      o.physEnabled=true;
+      try{physWorld.addBody(o.body);}catch(e){}
+      meshToBody(o);
+      o.body.applyImpulse(new CANNON.Vec3((Math.random()-.5)*8,12+Math.random()*10,(Math.random()-.5)*8),o.body.position);
+    }
+  });
+  notify('⚡ Launched all objects!');
+}
+
+function togglePhysSel(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  o.physEnabled=!o.physEnabled;
+  $('ph-en').checked=o.physEnabled;
+  if(o.physEnabled){
+    if(physEnabled){try{physWorld.addBody(o.body);}catch(e){}meshToBody(o);}
+    notify('Physics ON: '+o.name);
+  } else {
+    try{physWorld.removeBody(o.body);}catch(e){}
+    notify('Physics OFF: '+o.name);
+  }
+  refreshPhysPane();
+}
+
+function applyImpulse(ix,iy,iz){
+  if(!sel)return;
+  const o=findO(sel);if(!o||!o.body)return;
+  if(!o.physEnabled){o.physEnabled=true;$('ph-en').checked=true;}
+  if(!physEnabled)togglePhysics();
+  try{physWorld.addBody(o.body);}catch(e){}
+  meshToBody(o);
+  o.body.applyImpulse(new CANNON.Vec3(ix,iy,iz),o.body.position);
+  notify('Impulse applied!');
+}
+
+// ── BIND HELPERS ──────────────────────────────────────────────────────────
+
+function setBindStatus(msg,state='info'){
+  const el=$('bind-status');if(!el)return;
+  const cols={info:'var(--t2)',ok:'var(--ok)',warn:'var(--warn)',err:'var(--dn)'};
+  el.textContent=msg;el.style.color=cols[state]||cols.info;
+}
+
+function setBindStep(n){
+  bindStep=n;
+  [1,2].forEach(i=>{
+    const el=$('bs'+i);if(!el)return;
+    el.style.color=i===n?'var(--acc)':i<n?'var(--ok)':'var(--t3)';
+    el.style.fontWeight=i===n?'700':'400';
+  });
+}
+
+function cancelBind(){
+  if(bindMarkerA){scene.remove(bindMarkerA);bindMarkerA=null;}
+  if(bindObjA)unhilite(bindObjA);
+  clearBindHover();
+  bindObjA=null; bindWorldA=null;
+  setBindStep(1);
+  setBindStatus('Press B to begin');
+}
+
+// ── HOVER PREVIEW ──
+function getSnapWorldPoint(hit){
+  const mesh=hit.object;
+  switch(bindSnapMode){
+    case 'vertex':{
+      // snap to nearest vertex in world space
+      const pos=mesh.geometry.attributes.position;
+      if(!pos)return hit.point.clone();
+      let best=null,bestD=Infinity;
+      for(let i=0;i<pos.count;i++){
+        const v=new THREE.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i));
+        const w=mesh.localToWorld(v.clone());
+        const d=w.distanceTo(hit.point);
+        if(d<bestD){bestD=d;best=w;}
+      }
+      return best||hit.point.clone();
+    }
+    case 'face':{
+      // snap to face centre in world space
+      const pos=mesh.geometry.attributes.position;
+      if(!pos||!hit.face)return hit.point.clone();
+      const a=new THREE.Vector3(pos.getX(hit.face.a),pos.getY(hit.face.a),pos.getZ(hit.face.a));
+      const b=new THREE.Vector3(pos.getX(hit.face.b),pos.getY(hit.face.b),pos.getZ(hit.face.b));
+      const c=new THREE.Vector3(pos.getX(hit.face.c),pos.getY(hit.face.c),pos.getZ(hit.face.c));
+      return mesh.localToWorld(a.add(b).add(c).divideScalar(3));
+    }
+    default: return hit.point.clone(); // surface — exact hit point
+  }
+}
+
+// Compute a Cannon.js pivot (in body local frame, unscaled) from a world point on a mesh
+function worldToBodyPivot(body,worldPt){
+  const dx=worldPt.x-body.position.x;
+  const dy=worldPt.y-body.position.y;
+  const dz=worldPt.z-body.position.z;
+  const invQ=body.quaternion.inverse();
+  const out=new CANNON.Vec3();
+  invQ.vmult(new CANNON.Vec3(dx,dy,dz),out);
+  return out;
+}
+
+function clearBindHover(){
+  if(bindHoverMarker){scene.remove(bindHoverMarker);bindHoverMarker=null;}
+}
+
+function updateBindHover(clientX,clientY){
+  const canvas=$('c3d'),r=canvas.getBoundingClientRect();
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+  if(!hits.length){clearBindHover();return;}
+  const worldPt=getSnapWorldPoint(hits[0]);
+  if(!bindHoverMarker){
+    const col=bindStep===1?0xffaa00:0x00ccff;
+    const geo=new THREE.SphereGeometry(0.04,8,8);
+    const mat=new THREE.MeshBasicMaterial({color:col,depthTest:false,transparent:true,opacity:.9});
+    bindHoverMarker=new THREE.Mesh(geo,mat);
+    scene.add(bindHoverMarker);
+  } else {
+    // Update colour per step
+    bindHoverMarker.material.color.setHex(bindStep===1?0xffaa00:0x00ccff);
+  }
+  bindHoverMarker.position.copy(worldPt);
+}
+
+function makeAnchorMarker(worldPt,color=0xff6600){
+  const geo=new THREE.SphereGeometry(0.055,10,10);
+  const mat=new THREE.MeshBasicMaterial({color,depthTest:false,transparent:true,opacity:.92});
+  const m=new THREE.Mesh(geo,mat);
+  m.position.copy(worldPt);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.1,.008,6,20),
+    new THREE.MeshBasicMaterial({color,depthTest:false,transparent:true,opacity:.55}));
+  m.add(ring);
+  scene.add(m);
+  return m;
+}
+
+// ── 2-STEP BIND CLICK ─────────────────────────────────────────────────────
+function handleBindClick(hits){
+  if(!hits.length){
+    setBindStatus(bindStep===1?'Hover over Object A and click any point on its surface'
+      :'Hover over Object B and click any point on its surface','warn');
+    return;
+  }
+  const hit=hits[0];
+  const clicked=hit.object;
+  const worldPt=getSnapWorldPoint(hit);
+
+  // Step 1: pick surface point on Object A
+  if(bindStep===1){
+    const oA=findO(clicked);
+    if(!oA||oA.type!=='mesh'){setBindStatus('Must be a mesh object','warn');return;}
+    if(bindObjA&&bindObjA!==clicked)unhilite(bindObjA);
+    bindObjA=clicked;
+    bindWorldA=worldPt.clone();
+    select(clicked);
+    clearBindHover();
+    if(bindMarkerA){scene.remove(bindMarkerA);bindMarkerA=null;}
+    bindMarkerA=makeAnchorMarker(bindWorldA,0xff6600);
+    setBindStep(2);
+    const snapLabel={surface:'surface point',vertex:'nearest vertex',face:'face centre'}[bindSnapMode];
+    setBindStatus(`✓ Anchor A set (${snapLabel}) — now click anywhere on Object B`,'ok');
+    return;
+  }
+
+  // Step 2: pick surface point on Object B → create constraint
+  if(bindStep===2){
+    if(clicked===bindObjA){
+      setBindStatus('That is Object A — click a different object for B','warn');
+      return;
+    }
+    const oB=findO(clicked);
+    if(!oB||oB.type!=='mesh'){setBindStatus('Must be a mesh object','warn');return;}
+    const worldB=worldPt.clone();
+
+    // Flash blue marker at B's point
+    const markerB=makeAnchorMarker(worldB,0x00aaff);
+    setTimeout(()=>scene.remove(markerB),1600);
+
+    createBind(bindObjA,bindWorldA,clicked,worldB);
+
+    // Fade A marker
+    const mRef=bindMarkerA; bindMarkerA=null;
+    setTimeout(()=>{if(mRef)scene.remove(mRef);},1600);
+
+    unhilite(bindObjA);
+    bindObjA=null; bindWorldA=null;
+    clearBindHover();
+    setBindStep(1);
+    setBindStatus('⛓ Bound! Click B again to begin another','ok');
+    setTimeout(()=>setTool('select'),300);
+  }
+}
+
+// ── MAIN BIND CREATION ────────────────────────────────────────────────────
+function createBind(meshA,worldA,meshB,worldB){
+  const oA=findO(meshA),oB=findO(meshB);
+  if(!oA||!oB){notify('Both must be mesh objects');cancelBind();return;}
+
+  // Move Object B so its chosen surface point aligns with Object A's surface point
+  const offset=new THREE.Vector3().subVectors(worldA,worldB);
+  meshB.position.add(offset);
+  meshB.updateMatrixWorld(true);
+
+  // Auto-enable physics on both
+  [oA,oB].forEach(o=>{
+    if(!o.physEnabled){
+      o.physEnabled=true;
+      try{physWorld.addBody(o.body);}catch(e){}
+      meshToBody(o);
+    }
+  });
+  if(!physEnabled)togglePhysics();
+  meshToBody(oB); // sync B to its new position
+
+  // Compute Cannon pivots in each body's local unscaled frame
+  // worldA is still the correct attachment point for A (A didn't move)
+  // worldB_new = worldA (since B moved to align)
+  const pivA=worldToBodyPivot(oA.body,worldA);
+  // After moving B, the attach point is now at worldA for both
+  const pivB=worldToBodyPivot(oB.body,worldA);
+
+  let cannon;
+  if(tetherMode==='spring'){
+    cannon=new CANNON.DistanceConstraint(oA.body,oB.body,0,1e5);
+  } else {
+    cannon=new CANNON.PointToPointConstraint(oA.body,pivA,oB.body,pivB);
+  }
+  physWorld.addConstraint(cannon);
+
+  // Visual line — updates anchor-to-anchor each frame using stored world pivots
+  const pts=[worldA.clone(),worldA.clone()]; // start same, animate loop will update
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const lineMat=new THREE.LineDashedMaterial({
+    color:tetherMode==='spring'?0x00aaff:0xff7700,
+    dashSize:.14,gapSize:.07
+  });
+  const line=new THREE.Line(geo,lineMat);
+  line.computeLineDistances();
+  scene.add(line);
+
+  cid++;
+  // Store pivots for live line update (in body local space)
+  physConstraints.push({id:cid,cannon,line,objA:oA,objB:oB,pivA,pivB,mode:tetherMode});
+  buildConstraintList();
+  notify(`⛓ Bound (${bindSnapMode}): ${oA.name.split('.')[0]} ↔ ${oB.name.split('.')[0]}`);
+}
+
+function removeBind(id){
+  const idx=physConstraints.findIndex(c=>c.id===id);if(idx<0)return;
+  const c=physConstraints[idx];
+  try{physWorld.removeConstraint(c.cannon);}catch(e){}
+  scene.remove(c.line);c.line.geometry.dispose();c.line.material.dispose();
+  physConstraints.splice(idx,1);
+  buildConstraintList();notify('Tether removed');
+}
+
+function removeAllBinds(){
+  [...physConstraints].forEach(c=>{
+    try{physWorld.removeConstraint(c.cannon);}catch(e){}
+    scene.remove(c.line);c.line.geometry.dispose();c.line.material.dispose();
+  });
+  physConstraints=[];buildConstraintList();notify('All tethers removed');
+}
+
+function buildConstraintList(){
+  const el=$('constraint-list');if(!el)return;
+  if(!physConstraints.length){
+    el.innerHTML='<div style="font-size:9px;color:var(--t3);padding:3px 0">No active tethers</div>';return;
+  }
+  el.innerHTML=physConstraints.map(c=>`
+    <div class="mod-row" style="margin-top:2px;gap:4px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${c.mode==='spring'?'#00aaff':'#ff7700'};flex-shrink:0;display:inline-block"></span>
+      <span style="font-size:9px;color:var(--t1);flex:1">${c.objA.name.split('.')[0]} ↔ ${c.objB.name.split('.')[0]}</span>
+      <span style="font-size:8px;color:var(--t3)">${c.mode}</span>
+      <button class="mod-x" onclick="removeBind(${c.id})">✕</button>
+    </div>`).join('')+
+    `<button class="btn dn" style="margin-top:4px;font-size:9px" onclick="removeAllBinds()">Remove All</button>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CLIP DEBUG TOOL
+// ═══════════════════════════════════════════════════════════════════════════
+
+let clipStep=1;          // 1 = waiting for surface on A, 2 = waiting for B
+let clipObjA=null;       // target mesh
+let clipWorldA=null;     // world-space surface point on A
+let clipMarkerA=null;    // red X marker at clip point
+let clipHoverMarker=null;
+let clipDepth=0;         // extra push-in depth (metres)
+let clipLog=[];          // [{nameA, nameB, time}]
+
+function setClipStatus(msg,state='info'){
+  const el=$('clip-status');if(!el)return;
+  const cols={info:'var(--t2)',ok:'var(--ok)',warn:'var(--warn)',err:'var(--dn)'};
+  el.textContent=msg;el.style.color=cols[state]||cols.info;
+}
+
+function setClipStep(n){
+  clipStep=n;
+  [1,2].forEach(i=>{
+    const el=$('clip-s'+i);if(!el)return;
+    el.style.color=i===n?'var(--dn)':i<n?'var(--ok)':'var(--t3)';
+    el.style.fontWeight=i===n?'700':'400';
+  });
+}
+
+function cancelClip(){
+  if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+  if(clipObjA)unhilite(clipObjA);
+  clearClipHover();
+  clipObjA=null;clipWorldA=null;
+  setClipStep(1);
+  setClipStatus('Press C to begin clipping');
+}
+
+// Hover preview for clip — red crosshair dot
+function clearClipHover(){
+  if(clipHoverMarker){scene.remove(clipHoverMarker);clipHoverMarker=null;}
+}
+
+function updateClipHover(clientX,clientY){
+  const canvas=$('c3d'),r=canvas.getBoundingClientRect();
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+  const hits=RC.intersectObjects(objects.map(o=>o.mesh).filter(Boolean),false);
+  if(!hits.length){clearClipHover();return;}
+  const pt=hits[0].point.clone();
+
+  if(!clipHoverMarker){
+    // Red X crosshair marker
+    const grp=new THREE.Group();
+    const lmat=new THREE.LineBasicMaterial({color:0xff2222,depthTest:false});
+    const s=0.07;
+    [[new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0)],
+     [new THREE.Vector3(0,-s,0),new THREE.Vector3(0,s,0)],
+     [new THREE.Vector3(0,0,-s),new THREE.Vector3(0,0,s)]].forEach(pts=>{
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      grp.add(new THREE.Line(geo,lmat));
+    });
+    clipHoverMarker=grp;
+    scene.add(clipHoverMarker);
+  }
+  clipHoverMarker.position.copy(pt);
+}
+
+function makeClipMarker(worldPt){
+  // Glowing red sphere with crosshair lines
+  const grp=new THREE.Group();
+  const smat=new THREE.MeshBasicMaterial({color:0xff1111,depthTest:false,transparent:true,opacity:.85});
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8),smat);
+  grp.add(dot);
+  const lmat=new THREE.LineBasicMaterial({color:0xff4444,depthTest:false});
+  const s=0.14;
+  [[new THREE.Vector3(-s,0,0),new THREE.Vector3(s,0,0)],
+   [new THREE.Vector3(0,-s,0),new THREE.Vector3(0,s,0)],
+   [new THREE.Vector3(0,0,-s),new THREE.Vector3(0,0,s)]].forEach(pts=>{
+    const geo=new THREE.BufferGeometry().setFromPoints(pts);
+    grp.add(new THREE.Line(geo,lmat));
+  });
+  grp.position.copy(worldPt);
+  scene.add(grp);
+  return grp;
+}
+
+// 2-step clip click handler
+function handleClipClick(hits){
+  if(!hits.length){
+    setClipStatus(clipStep===1?'Hover over Object A and click a surface point'
+      :'Now click Object B to clip it in','warn');
+    return;
+  }
+  const hit=hits[0];
+  const clicked=hit.object;
+
+  // Step 1: pick surface point on A (the target)
+  if(clipStep===1){
+    const oA=findO(clicked);
+    if(!oA||oA.type!=='mesh'){setClipStatus('Must be a mesh object','warn');return;}
+    if(clipObjA)unhilite(clipObjA);
+    clipObjA=clicked;
+    clipWorldA=hit.point.clone(); // raw surface point, no snap
+    select(clicked);
+    clearClipHover();
+    if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+    clipMarkerA=makeClipMarker(clipWorldA);
+    setClipStep(2);
+    setClipStatus(`✓ Target point set on ${clicked.name.split('.')[0]} — now click Object B`,'ok');
+    return;
+  }
+
+  // Step 2: pick B — clip its ORIGIN into the surface point on A
+  if(clipStep===2){
+    if(clicked===clipObjA){
+      // Clicked A again — update the clip point
+      clipWorldA=hit.point.clone();
+      if(clipMarkerA){scene.remove(clipMarkerA);clipMarkerA=null;}
+      clipMarkerA=makeClipMarker(clipWorldA);
+      setClipStatus(`Clip point updated — now click Object B`,'ok');
+      return;
+    }
+    const oB=findO(clicked);
+    if(!oB||oB.type!=='mesh'){setClipStatus('Must be a mesh object','warn');return;}
+
+    // The KEY difference from Bind: B's origin (center) goes to the surface point,
+    // not B's surface. This causes geometric clipping/interpenetration.
+    const faceNormal=hit.face?hit.face.normal.clone():new THREE.Vector3(0,1,0);
+    // Transform face normal to world space
+    const normalMatrix=new THREE.Matrix3().getNormalMatrix(clipObjA.matrixWorld);
+    faceNormal.applyMatrix3(normalMatrix).normalize();
+    // Move B's center to the surface point, then push in by clipDepth along the face normal
+    const targetPos=clipWorldA.clone().addScaledVector(faceNormal,-clipDepth);
+    clicked.position.copy(targetPos);
+    clicked.updateMatrixWorld(true);
+
+    // If physics is on, sync the body too
+    const syncObj=oB;
+    if(syncObj.body){
+      syncObj.body.position.set(targetPos.x,targetPos.y,targetPos.z);
+      syncObj.body.velocity.setZero();
+      syncObj.body.angularVelocity.setZero();
+      syncObj.body.wakeUp();
+    }
+
+    // Flash effect — briefly show B in wireframe then restore
+    const origWire=clicked.material.wireframe;
+    clicked.material.wireframe=true;
+    setTimeout(()=>{clicked.material.wireframe=origWire;},280);
+
+    // Log it
+    const entry={nameA:clipObjA.name.split('.')[0],nameB:clicked.name.split('.')[0],depth:clipDepth,time:new Date().toLocaleTimeString()};
+    clipLog.unshift(entry);
+    if(clipLog.length>12)clipLog.pop();
+    buildClipLog();
+
+    notify(`✂ Clipped: ${entry.nameB} → ${entry.nameA} (depth ${clipDepth.toFixed(2)}m)`);
+    setClipStatus(`✂ Done! B clipped into A. Click A again to set new point`,'ok');
+
+    // Cleanup markers
+    const mRef=clipMarkerA; clipMarkerA=null;
+    setTimeout(()=>{if(mRef)scene.remove(mRef);},1000);
+
+    // Reset to step 1 so user can clip again immediately
+    unhilite(clipObjA);
+    clipObjA=null; clipWorldA=null;
+    setClipStep(1);
+    setTimeout(()=>setTool('select'),300);
+  }
+}
+
+function buildClipLog(){
+  const el=$('clip-log');if(!el)return;
+  if(!clipLog.length){el.innerHTML='<span style="color:var(--t3)">No clips yet</span>';return;}
+  el.innerHTML=clipLog.map(e=>`
+    <div style="padding:3px 0;border-bottom:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center;gap:6px">
+      <span style="color:var(--dn)">✂</span>
+      <span style="flex:1;color:var(--t1)">${e.nameB} → ${e.nameA}</span>
+      <span style="color:var(--t3)">${e.depth.toFixed(2)}m</span>
+      <span style="color:var(--t3);font-size:8.5px">${e.time}</span>
+    </div>`).join('');
+}
+
+function clearClipLog(){clipLog=[];buildClipLog();}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DEBUG VISUALISATION
+// ═══════════════════════════════════════════════════════════════════════════
+
+let debugBBoxHelpers=[];
+let debugNormalHelpers=[];
+let debugVertexObjects=[];
+let debugWireActive=false;
+let debugSavedMats=new Map(); // for wireAll toggle
+
+function toggleBBoxAll(on){
+  debugBBoxHelpers.forEach(h=>scene.remove(h));
+  debugBBoxHelpers=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      const box=new THREE.BoxHelper(o.mesh,0x00ff88);
+      scene.add(box);debugBBoxHelpers.push(box);
+    });
+    // Update each frame — hook into animate via global flag
+    notify('Bounding boxes ON');
+  } else notify('Bounding boxes OFF');
+}
+
+function toggleNormals(on){
+  debugNormalHelpers.forEach(h=>scene.remove(h));
+  debugNormalHelpers=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      // Approximate face normals with vertex normal helper
+      const geo=o.mesh.geometry;
+      if(geo.attributes.normal){
+        const h=new THREE.VertexNormalsHelper(o.mesh,.22,0xffff00);
+        scene.add(h);debugNormalHelpers.push(h);
+      }
+    });
+    notify('Normals display ON');
+  } else notify('Normals display OFF');
+}
+
+function toggleVertDots(on){
+  debugVertexObjects.forEach(h=>scene.remove(h));
+  debugVertexObjects=[];
+  if(on){
+    objects.forEach(o=>{
+      if(o.type!=='mesh')return;
+      const pos=o.mesh.geometry.attributes.position;
+      if(!pos)return;
+      // Deduplicate verts to avoid thousands of dots on dense meshes
+      const seen=new Set();
+      const pts=[];
+      for(let i=0;i<Math.min(pos.count,800);i++){
+        const key=`${pos.getX(i).toFixed(2)},${pos.getY(i).toFixed(2)},${pos.getZ(i).toFixed(2)}`;
+        if(seen.has(key))continue;
+        seen.add(key);
+        pts.push(new THREE.Vector3(pos.getX(i),pos.getY(i),pos.getZ(i)));
+      }
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      const mat=new THREE.PointsMaterial({color:0xff8800,size:4,sizeAttenuation:false,depthTest:false});
+      const points=new THREE.Points(geo,mat);
+      // Apply mesh world transform
+      points.position.copy(o.mesh.position);
+      points.rotation.copy(o.mesh.rotation);
+      points.scale.copy(o.mesh.scale);
+      scene.add(points);debugVertexObjects.push(points);
+    });
+    notify('Vertex dots ON');
+  } else notify('Vertex dots OFF');
+}
+
+function toggleWireAll(on){
+  debugWireActive=on;
+  objects.forEach(o=>{
+    if(o.type!=='mesh'||!o.mesh.material)return;
+    if(on){
+      debugSavedMats.set(o.id,o.mesh.material.wireframe);
+      o.mesh.material.wireframe=true;
+    } else {
+      const saved=debugSavedMats.get(o.id);
+      o.mesh.material.wireframe=saved!==undefined?saved:false;
+    }
+  });
+  notify('Wireframe all '+(on?'ON':'OFF'));
+}
+
+function toggleOrigin(on){
+  if(axesH)axesH.visible=on;
+  if(gridH)gridH.visible=on;
+}
+
+function toggleShadowDebug(on){
+  // Tint the shadow receiving plane magenta to show shadow map coverage
+  const g=scene.children.find(c=>c.name==='__ground');
+  if(g&&g.material)g.material.color.set(on?0x440044:0x1a1a1a);
+  notify('Shadow debug '+(on?'ON':'OFF'));
+}
+
+function clearAllDebug(){
+  debugBBoxHelpers.forEach(h=>scene.remove(h));debugBBoxHelpers=[];
+  debugNormalHelpers.forEach(h=>scene.remove(h));debugNormalHelpers=[];
+  debugVertexObjects.forEach(h=>scene.remove(h));debugVertexObjects=[];
+  // Reset checkboxes
+  ['dbg-bb','dbg-norm','dbg-verts','dbg-wire','dbg-shad'].forEach(id=>{
+    const el=$(id);if(el)el.checked=false;
+  });
+  $('dbg-origin').checked=true;
+  if(axesH)axesH.visible=true;if(gridH)gridH.visible=true;
+  toggleWireAll(false);
+  const g=scene.children.find(c=>c.name==='__ground');
+  if(g&&g.material)g.material.color.set(0x1a1a1a);
+  notify('All debug overlays cleared');
+}
+
+function refreshDebugStats(){
+  let meshCount=0,lightCount=0,totalVerts=0,totalPolys=0,physBodies=0;
+  objects.forEach(o=>{
+    if(o.type==='mesh'){
+      meshCount++;
+      const g=o.mesh.geometry;
+      if(g.attributes.position)totalVerts+=g.attributes.position.count;
+      if(g.index)totalPolys+=g.index.count/3;
+      else if(g.attributes.position)totalPolys+=g.attributes.position.count/3;
+    }
+    if(o.type==='light')lightCount++;
+    if(o.physEnabled)physBodies++;
+  });
+  const el=$('dbg-stats');if(!el)return;
+  el.innerHTML=`
+    <div>Objects: <b style="color:var(--t1)">${objects.length}</b></div>
+    <div>Meshes: <b style="color:var(--t1)">${meshCount}</b></div>
+    <div>Lights: <b style="color:var(--t1)">${lightCount}</b></div>
+    <div>Total Vertices: <b style="color:var(--acc)">${totalVerts.toLocaleString()}</b></div>
+    <div>Total Polygons: <b style="color:var(--acc)">${Math.round(totalPolys).toLocaleString()}</b></div>
+    <div>Physics Bodies: <b style="color:var(--ok)">${physBodies}</b></div>
+    <div>Tethers: <b style="color:var(--ok)">${physConstraints.length}</b></div>
+    <div>Clip Ops: <b style="color:var(--dn)">${clipLog.length}</b></div>
+    <div>FPS: <b style="color:var(--t1)">${fpsCur}</b></div>
+    <div>Renderer: <b style="color:var(--t1)">WebGL ${renderer.capabilities.isWebGL2?2:1}</b></div>
+  `;
+}
+function addMesh(type,silent=false){
+  closeMenus();
+  let geo;
+  switch(type){
+    case 'cube':geo=new THREE.BoxGeometry(1,1,1);break;
+    case 'sphere':geo=new THREE.SphereGeometry(.75,32,32);break;
+    case 'icosphere':geo=new THREE.IcosahedronGeometry(.75,4);break;
+    case 'cylinder':geo=new THREE.CylinderGeometry(.5,.5,1,32);break;
+    case 'plane':geo=new THREE.PlaneGeometry(2,2,4,4);break;
+    case 'torus':geo=new THREE.TorusGeometry(.55,.22,20,48);break;
+    case 'torus_knot':geo=new THREE.TorusKnotGeometry(.5,.18,120,20);break;
+    case 'cone':geo=new THREE.ConeGeometry(.55,1,32);break;
+    case 'lathe':
+      const pts=[];for(let i=0;i<8;i++){const t=i/7;pts.push(new THREE.Vector2((.4+.3*Math.sin(t*Math.PI*2))*Math.abs(Math.sin(t*Math.PI)),t*.9));}
+      geo=new THREE.LatheGeometry(pts,24);break;
+    case 'monkey':geo=new THREE.IcosahedronGeometry(.7,3);break;
+    default:geo=new THREE.BoxGeometry(1,1,1);
+  }
+  const mat=new THREE.MeshStandardMaterial({color:rndColor(),roughness:.5,metalness:0});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.position.set((Math.random()-.5)*1.5,.65,(Math.random()-.5)*1.5);
+  oid++;
+  const label=type.charAt(0).toUpperCase()+type.slice(1).replace('_',' ');
+  mesh.name=`${label}.${String(oid).padStart(3,'0')}`;
+  scene.add(mesh);
+  const body=makeBody(type,mesh);
+  const obj={id:oid,name:mesh.name,mesh,body,meshType:type,type:'mesh',physEnabled:false,mods:[],visible:true};
+  objects.push(obj);
+  pushUndo({a:'add',id:oid});
+  if(!silent)notify('Added '+label);
+  select(mesh);
+  buildOutliner();
+  return obj;
+}
+
+// ── LIGHTS ─────────────────────────────────────────────────────────────────
+function addLight(type){
+  closeMenus();
+  let light;
+  switch(type){
+    case 'point':light=new THREE.PointLight(0xffeedd,1.5,25,2);light.castShadow=true;break;
+    case 'spot':light=new THREE.SpotLight(0xffffff,2,35,Math.PI/7,.25,2);light.castShadow=true;break;
+    case 'sun':light=new THREE.DirectionalLight(0xfff8e0,1.2);light.castShadow=true;break;
+    case 'area':light=new THREE.RectAreaLight(0xffffff,5,2,2);break;
+    case 'hemi':light=new THREE.HemisphereLight(0x6699ff,0x553322,.8);break;
+  }
+  light.position.set(0,4,0);
+  scene.add(light);
+  const mkGeo=new THREE.OctahedronGeometry(.1,0);
+  const mkMat=new THREE.MeshBasicMaterial({color:0xffee00,wireframe:true});
+  const mk=new THREE.Mesh(mkGeo,mkMat);
+  mk.position.copy(light.position);
+  mk.userData.isLight=true;mk.userData.lightRef=light;
+  scene.add(mk);
+  oid++;
+  const lbl=type.charAt(0).toUpperCase()+type.slice(1)+' Light';
+  mk.name=lbl+'.'+String(oid).padStart(3,'0');
+  const obj={id:oid,name:mk.name,mesh:mk,light,type:'light',lightType:type,visible:true};
+  objects.push(obj);
+  select(mk);buildOutliner();
+  notify('Added '+lbl);
+}
+
+function addCamera(){
+  closeMenus();notify('Camera object added (use Num0 for camera view)');
+}
+
+function rndColor(){
+  const h=[.02,.07,.13,.53,.6,.67,.83,.9][Math.floor(Math.random()*8)];
+  return new THREE.Color().setHSL(h,.7,.5);
+}
+
+// ── VIEWPORT CLICK HANDLER ─────────────────────────────────────────────────
+function handleViewportClick(clientX,clientY){
+  const canvas=$('c3d');
+  const r=canvas.getBoundingClientRect();
+  MV.x=((clientX-r.left)/r.width)*2-1;
+  MV.y=-((clientY-r.top)/r.height)*2+1;
+  RC.setFromCamera(MV,camera);
+
+  // Only intersect actual scene meshes (exclude helpers/markers)
+  const meshList=objects.map(o=>o.mesh).filter(Boolean);
+  const hits=RC.intersectObjects(meshList,false);
+
+  // ── BIND MODE ──
+  if(tool==='bind'){
+    handleBindClick(hits);
+    return;
+  }
+
+  // ── CLIP MODE ──
+  if(tool==='clip'){
+    handleClipClick(hits);
+    return;
+  }
+
+  // ── NORMAL SELECT ──
+  if(hits.length){
+    select(hits[0].object);
+  } else {
+    deselect();
+  }
+}
+
+
+function select(mesh){
+  if(sel&&sel!==mesh)unhilite(sel);
+  sel=mesh;
+  hilite(mesh);
+  if(tool!=='select'){
+    tfCtrl.attach(mesh);
+    tfCtrl.setMode(tool==='move'?'translate':tool==='rotate'?'rotate':'scale');
+  } else tfCtrl.detach();
+  refreshPropsPane();
+  buildOutliner();
+  const o=findO(mesh);
+  $('hud-sel').textContent=o?o.name:'?';
+  $('sb-sel').textContent=o?'[ '+o.name+' ]':'';
+}
+
+function deselect(){
+  if(sel)unhilite(sel);
+  sel=null;
+  tfCtrl.detach();
+  refreshPropsPane();
+  buildOutliner();
+  $('hud-sel').textContent='No Selection';
+  $('sb-sel').textContent='';
+}
+
+function selAll(){if(objects.length)select(objects[0].mesh);}
+function deselAll(){deselect();}
+
+function hilite(m){
+  if(!m.material||!m.material.emissive)return;
+  m.userData._oe=m.material.emissive.getHex();
+  m.userData._oei=m.material.emissiveIntensity||0;
+  m.material.emissive.setHex(0x0d2a5e);
+  m.material.emissiveIntensity=.5;
+}
+function unhilite(m){
+  if(!m.material||!m.material.emissive)return;
+  m.material.emissive.setHex(m.userData._oe||0);
+  m.material.emissiveIntensity=m.userData._oei||0;
+}
+
+// ── TOOLS ──────────────────────────────────────────────────────────────────
+function setTool(t){
+  document.querySelectorAll('.tb[id^="t-"]').forEach(b=>b.classList.remove('act'));
+  $('t-'+t)?.classList.add('act');
+  const prevTool=tool;
+  tool=t;
+  if(prevTool==='bind'&&t!=='bind'){cancelBind();}
+  if(prevTool==='clip'&&t!=='clip'){cancelClip();}
+  if(t==='select'||t==='bind'||t==='clip'){
+    tfCtrl.detach();
+  } else if(sel){
+    tfCtrl.attach(sel);
+    tfCtrl.setMode(t==='move'?'translate':t==='rotate'?'rotate':'scale');
+  }
+  const hints={select:'SELECT',move:'MOVE (G)',rotate:'ROTATE (R)',scale:'SCALE (S)',
+    bind:'BIND ⛓ — click obj A surface, then obj B',
+    clip:'CLIP ✂ — click surface on A, then click B to clip in'};
+  $('hud-tool').textContent=hints[t]||t.toUpperCase();
+  $('c3d').focus();
+}
+
+// ── KEYBOARD ───────────────────────────────────────────────────────────────
+function onKD(e){
+  const tag=e.target.tagName.toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea')return;
+  switch(e.key){
+    case 'g':case'G':setTool('move');break;
+    case 'r':case'R':setTool('rotate');break;
+    case 's':if(!e.ctrlKey)setTool('scale');break;
+    case 'q':case'Q':setTool('select');break;
+    case 'x':case'X':case'Delete':if(!e.ctrlKey)delSel();break;
+    case 'z':if(e.ctrlKey){e.preventDefault();e.shiftKey?doRedo():doUndo();}break;
+    case 'y':if(e.ctrlKey){e.preventDefault();doRedo();}break;
+    case 'D':if(e.shiftKey){e.preventDefault();dupSel();}break;
+    case 'a':case'A':if(!e.ctrlKey){e.altKey?deselAll():selAll();}break;
+    case 'f':case'F':if(!e.ctrlKey)focusSel();break;
+    case 'F12':e.preventDefault();renderFull();break;
+    case 'Home':resetCam();break;
+    case 'Escape':deselect();setTool('select');if(rewindActive)endRewind();break;
+    case '1':setView('front');break;
+    case '3':setView('right');break;
+    case '7':setView('top');break;
+    case '0':setView('camera');break;
+    case 'Tab':
+      e.preventDefault();
+      const modes=['solid','wireframe','material','rendered'];
+      setShade(modes[(modes.indexOf(shadeMode)+1)%4]);break;
+    case 'b':case'B':setTool('bind');showPane('physics');break;
+    case 'c':case'C':setTool('clip');showPane('debug');break;
+    case '[':startRewind();break;
+  }
+}
+function onKU(e){
+  if(e.key==='[')endRewind();
+}
+
+// ── OBJECT OPS ─────────────────────────────────────────────────────────────
+function findO(mesh){return objects.find(o=>o.mesh===mesh);}
+
+function delSel(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  pushUndo({a:'del',name:o.name});
+  scene.remove(sel);
+  if(o.light)scene.remove(o.light);
+  if(o.body)try{physWorld.removeBody(o.body);}catch(e){}
+  objects=objects.filter(x=>x!==o);
+  deselect();buildOutliner();
+  notify('Deleted '+o.name);
+}
+
+function dupSel(){
+  closeMenus();
+  if(!sel)return;
+  const o=findO(sel);if(!o||o.type!=='mesh')return;
+  const m2=new THREE.Mesh(sel.geometry.clone(),sel.material.clone());
+  m2.position.copy(sel.position).add(new THREE.Vector3(1.2,0,0));
+  m2.rotation.copy(sel.rotation);m2.scale.copy(sel.scale);
+  m2.castShadow=true;m2.receiveShadow=true;
+  oid++;
+  m2.name=o.name.replace(/\.\d+$/,'')+'.'+String(oid).padStart(3,'0');
+  scene.add(m2);
+  const body=makeBody(o.meshType,m2);
+  const n={id:oid,name:m2.name,mesh:m2,body,meshType:o.meshType,type:'mesh',physEnabled:false,mods:[],visible:true};
+  objects.push(n);
+  select(m2);buildOutliner();
+  notify('Duplicated → '+m2.name);
+}
+
+function applyTransforms(){
+  closeMenus();if(!sel)return;
+  const m=new THREE.Matrix4().makeRotationFromQuaternion(sel.quaternion);
+  m.scale(sel.scale);
+  sel.geometry.applyMatrix4(m);
+  sel.position.set(0,.65,0);sel.rotation.set(0,0,0);sel.scale.set(1,1,1);
+  syncTFInputs();notify('Transforms applied to geometry');
+}
+
+function setOriginCenter(){
+  closeMenus();if(!sel)return;
+  sel.geometry.computeBoundingBox();
+  const c=new THREE.Vector3();
+  sel.geometry.boundingBox.getCenter(c);
+  sel.geometry.translate(-c.x,-c.y,-c.z);
+  sel.position.add(c);syncTFInputs();
+  notify('Origin → geometry center');
+}
+
+function mirrorX(){closeMenus();if(sel){sel.scale.x*=-1;syncTFInputs();notify('Mirrored X');}}
+function mirrorY(){closeMenus();if(sel){sel.scale.y*=-1;syncTFInputs();notify('Mirrored Y');}}
+function mirrorZ(){closeMenus();if(sel){sel.scale.z*=-1;syncTFInputs();notify('Mirrored Z');}}
+
+// ── MODIFIERS ──────────────────────────────────────────────────────────────
+function applyMod(type){
+  closeMenus();
+  if(!sel||sel.type!=='Mesh'){notify('Select a mesh first');return;}
+  const o=findO(sel);if(!o)return;
+  const subs=o.mods.filter(m=>m.type==='subsurf').length;
+  switch(type){
+    case 'subsurf':{
+      const segs=Math.min(96,8*Math.pow(2,subs));
+      let g;
+      switch(o.meshType){
+        case 'sphere':g=new THREE.SphereGeometry(.75,segs,segs/2);break;
+        case 'icosphere':g=new THREE.IcosahedronGeometry(.75,Math.min(6,subs+3));break;
+        case 'cylinder':g=new THREE.CylinderGeometry(.5,.5,1,segs);break;
+        case 'torus':g=new THREE.TorusGeometry(.55,.22,segs/2,segs);break;
+        default:g=new THREE.BoxGeometry(1,1,1,subs+2,subs+2,subs+2);
+      }
+      sel.geometry.dispose();sel.geometry=g;
+      o.mods.push({type:'subsurf',segs});notify('Subdivide Surface ('+segs+' segs)');break;
+    }
+    case 'bevel':o.mods.push({type:'bevel'});notify('Bevel applied');break;
+    case 'solidify':o.mods.push({type:'solidify'});notify('Solidify applied');break;
+    case 'wireframe':
+      sel.material.wireframe=!sel.material.wireframe;
+      o.mods.push({type:'wireframe',on:sel.material.wireframe});
+      notify('Wireframe mod '+(sel.material.wireframe?'ON':'OFF'));break;
+    case 'mirror':
+      sel.scale.x=Math.abs(sel.scale.x)*-1;
+      o.mods.push({type:'mirror'});notify('Mirror X applied');break;
+    case 'smooth':
+      sel.geometry.computeVertexNormals&&sel.geometry.computeVertexNormals();
+      o.mods.push({type:'smooth'});notify('Smooth normals applied');break;
+  }
+  refreshModList(o);
+}
+
+function refreshModList(o){
+  const el=$('mod-list');if(!el)return;
+  el.innerHTML=(o.mods||[]).map((m,i)=>`<div class="mod-row"><span>✓ ${m.type}${m.segs?' ('+m.segs+'seg)':''}</span><button class="mod-x" onclick="removeMod(${i})">✕</button></div>`).join('');
+}
+function removeMod(i){if(!sel)return;const o=findO(sel);if(!o)return;o.mods.splice(i,1);refreshModList(o);notify('Modifier removed');}
+
+// ── SHADING ────────────────────────────────────────────────────────────────
+function setShade(m){
+  shadeMode=m;
+  ['solid','wireframe','material','rendered'].forEach(s=>{
+    $('shb-'+s)?.classList.toggle('act',s===m);
+    $('vpb-'+s)?.classList.toggle('act',s===m);
+  });
+  $('hud-mode').textContent=m.toUpperCase();
+  objects.forEach(o=>{
+    if(!o.mesh||o.type!=='mesh')return;
+    const mesh=o.mesh;
+    if(swapMats.has(mesh)){mesh.material=swapMats.get(mesh);swapMats.delete(mesh);}
+    if(mesh.material)mesh.material.wireframe=false;
+    if(m==='wireframe'){
+      swapMats.set(mesh,mesh.material);
+      mesh.material=new THREE.MeshBasicMaterial({color:0x44aaff,wireframe:true});
+    }
+  });
+  switch(m){
+    case 'solid':renderer.toneMapping=THREE.NoToneMapping;break;
+    case 'material':renderer.toneMapping=THREE.ACESFilmicToneMapping;break;
+    case 'rendered':renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;break;
+  }
+  if(sel&&m!=='wireframe')hilite(sel);
+  notify('Shading: '+m);
+}
+
+// ── MATERIAL ───────────────────────────────────────────────────────────────
+function updateMat(){
+  if(!sel||sel.type!=='Mesh')return;
+  const mtype=$('m-type').value;
+  const col=$('m-col').value;
+  const met=parseFloat($('m-met').value);
+  const rgh=parseFloat($('m-rgh').value);
+  const opa=parseFloat($('m-opa').value);
+  const ecol=$('m-ecol').value;
+  const eint=parseFloat($('m-eint').value);
+  const flat=$('m-flat').checked;
+  const dbl=$('m-dbl').checked;
+
+  let mat=sel.material;
+  const needNew={standard:THREE.MeshStandardMaterial,phong:THREE.MeshPhongMaterial,toon:THREE.MeshToonMaterial,normal:THREE.MeshNormalMaterial,depth:THREE.MeshDepthMaterial};
+  if(mtype==='normal'){sel.material=new THREE.MeshNormalMaterial({flatShading:flat,side:dbl?THREE.DoubleSide:THREE.FrontSide});refreshMatBall();return;}
+  if(mtype==='depth'){sel.material=new THREE.MeshDepthMaterial();refreshMatBall();return;}
+  if(mtype==='standard'&&!(mat instanceof THREE.MeshStandardMaterial))sel.material=mat=new THREE.MeshStandardMaterial();
+  if(mtype==='phong'&&!(mat instanceof THREE.MeshPhongMaterial))sel.material=mat=new THREE.MeshPhongMaterial();
+  if(mtype==='toon'&&!(mat instanceof THREE.MeshToonMaterial))sel.material=mat=new THREE.MeshToonMaterial();
+
+  mat=sel.material;
+  mat.color.set(col);
+  if('metalness' in mat)mat.metalness=met;
+  if('roughness' in mat)mat.roughness=rgh;
+  mat.opacity=opa;mat.transparent=opa<1;
+  if(mat.emissive)mat.emissive.set(ecol);
+  if('emissiveIntensity' in mat)mat.emissiveIntensity=eint;
+  mat.flatShading=flat;mat.side=dbl?THREE.DoubleSide:THREE.FrontSide;
+  mat.needsUpdate=true;
+  hilite(sel);
+  refreshMatBall();
+}
+
+const PRESETS={
+  chrome:{col:'#c8d8e8',met:1,rgh:.04,opa:1,ecol:'#000',eint:0},
+  gold:  {col:'#ffcc00',met:1,rgh:.1,opa:1,ecol:'#000',eint:0},
+  glass: {col:'#aaccff',met:0,rgh:0,opa:.2,ecol:'#000',eint:0},
+  copper:{col:'#b87333',met:.92,rgh:.25,opa:1,ecol:'#000',eint:0},
+  rubber:{col:'#1c1c1c',met:0,rgh:.98,opa:1,ecol:'#000',eint:0},
+  neon:  {col:'#ff0099',met:0,rgh:.2,opa:1,ecol:'#ff0099',eint:6},
+  obsidian:{col:'#18181e',met:.05,rgh:.04,opa:1,ecol:'#000',eint:0},
+  plastic:{col:'#e53e3e',met:0,rgh:.6,opa:1,ecol:'#000',eint:0},
+  ceramic:{col:'#f4f0e8',met:0,rgh:.25,opa:1,ecol:'#000',eint:0},
+  hologram:{col:'#00ffff',met:0,rgh:.1,opa:.55,ecol:'#00ffff',eint:3.5},
+  lava:  {col:'#ff3300',met:0,rgh:.9,opa:1,ecol:'#ff6600',eint:4},
+  wood:  {col:'#7a4a28',met:0,rgh:.92,opa:1,ecol:'#000',eint:0},
+};
+
+function applyPreset(name,doNotify=true){
+  const p=PRESETS[name];if(!p||!sel)return;
+  $('m-col').value=p.col;
+  $('m-met').value=p.met;$('v-met').textContent=p.met.toFixed(2);
+  $('m-rgh').value=p.rgh;$('v-rgh').textContent=p.rgh.toFixed(2);
+  $('m-opa').value=p.opa;$('v-opa').textContent=p.opa.toFixed(2);
+  $('m-ecol').value=p.ecol;
+  $('m-eint').value=p.eint;$('v-eint').textContent=p.eint.toFixed(1);
+  updateMat();
+  if(doNotify)notify('Preset: '+name.charAt(0).toUpperCase()+name.slice(1));
+}
+
+function refreshMatBall(){
+  const el=$('mat-ball');if(!el||!sel?.material)return;
+  const m=sel.material;
+  const col=m.color?'#'+m.color.getHexString():'#888';
+  const met=m.metalness||0,rgh=m.roughness||.5;
+  const opa=m.opacity||1,eint=m.emissiveIntensity||0;
+  const ecol=m.emissive?'#'+m.emissive.getHexString():'#000';
+  const hi=lighten(col,70);
+  const spec=met>.3?`,rgba(255,255,255,${.9*met}) 18%,rgba(200,200,200,${.1*met}) 50%`:'';
+  el.style.background=`radial-gradient(circle at 30% 28%,${hi}${spec},${col} 65%,#050505 100%)`;
+  el.style.boxShadow=eint>0?`0 0 ${eint*6}px ${ecol}`:null;
+  el.style.opacity=String(Math.max(opa,.2));
+}
+
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+}
+
+// ── PROPERTIES PANES ───────────────────────────────────────────────────────
+function refreshPropsPane(){
+  const has=!!sel,isMesh=has&&sel.type==='Mesh';
+  $('ob-empty').style.display=has?'none':'';
+  $('ob-body').style.display=has?'':'none';
+  $('mat-empty').style.display=isMesh?'none':'';
+  $('mat-body').style.display=isMesh?'':'none';
+  if(has)syncTFInputs();
+  if(has){
+    $('ob-vis').checked=sel.visible!==false;
+    $('ob-wire').checked=sel.material?.wireframe||false;
+    $('ob-shad').checked=sel.castShadow!==false;
+    $('ob-rshad').checked=sel.receiveShadow!==false;
+    $('ob-name').value=sel.name;
+    const o=findO(sel);if(o)refreshModList(o);
+  }
+  if(isMesh&&sel.material){
+    const m=sel.material;
+    $('m-col').value='#'+m.color.getHexString();
+    if('metalness' in m){$('m-met').value=m.metalness;$('v-met').textContent=m.metalness.toFixed(2);}
+    if('roughness' in m){$('m-rgh').value=m.roughness;$('v-rgh').textContent=m.roughness.toFixed(2);}
+    $('m-opa').value=m.opacity||1;$('v-opa').textContent=(m.opacity||1).toFixed(2);
+    if(m.emissive){$('m-ecol').value='#'+m.emissive.getHexString();}
+    if('emissiveIntensity' in m){$('m-eint').value=m.emissiveIntensity||0;$('v-eint').textContent=(m.emissiveIntensity||0).toFixed(1);}
+    refreshMatBall();
+  }
+  refreshPhysPane();
+}
+
+function refreshPhysPane(){
+  const o=sel?findO(sel):null;
+  const show=!!o&&o.type==='mesh';
+  $('ph-empty').style.display=show?'none':'';
+  $('ph-body').style.display=show?'':'none';
+  if(show){$('ph-en').checked=o.physEnabled||false;}
+}
+
+function syncTFInputs(){
+  if(!sel)return;
+  $('ob-px').value=sel.position.x.toFixed(3);
+  $('ob-py').value=sel.position.y.toFixed(3);
+  $('ob-pz').value=sel.position.z.toFixed(3);
+  $('ob-rx').value=(sel.rotation.x*180/Math.PI).toFixed(1);
+  $('ob-ry').value=(sel.rotation.y*180/Math.PI).toFixed(1);
+  $('ob-rz').value=(sel.rotation.z*180/Math.PI).toFixed(1);
+  $('ob-sx').value=sel.scale.x.toFixed(3);
+  $('ob-sy').value=sel.scale.y.toFixed(3);
+  $('ob-sz').value=sel.scale.z.toFixed(3);
+}
+
+function applyTF(){
+  if(!sel)return;
+  sel.position.set(parseFloat($('ob-px').value)||0,parseFloat($('ob-py').value)||0,parseFloat($('ob-pz').value)||0);
+  sel.rotation.set((parseFloat($('ob-rx').value)||0)*Math.PI/180,(parseFloat($('ob-ry').value)||0)*Math.PI/180,(parseFloat($('ob-rz').value)||0)*Math.PI/180);
+  sel.scale.set(parseFloat($('ob-sx').value)||1,parseFloat($('ob-sy').value)||1,parseFloat($('ob-sz').value)||1);
+  const o=findO(sel);
+  if(o&&o.body&&o.physEnabled)meshToBody(o);
+  if(sel.userData.isLight)sel.userData.lightRef.position.copy(sel.position);
+}
+
+function setProp(prop,val){
+  if(!sel)return;
+  if(prop==='visible'){sel.visible=val;const o=findO(sel);if(o)o.visible=val;buildOutliner();}
+  else if(prop==='wireframe'&&sel.material)sel.material.wireframe=val;
+  else if(prop==='castShadow')sel.castShadow=val;
+  else if(prop==='receiveShadow')sel.receiveShadow=val;
+}
+
+function renameObj(){
+  if(!sel)return;
+  const o=findO(sel);if(!o)return;
+  const n=$('ob-name').value.trim();
+  if(n){sel.name=n;o.name=n;buildOutliner();}
+}
+
+// ── OUTLINER ───────────────────────────────────────────────────────────────
+function buildOutliner(){
+  const q=($('ol-q').value||'').toLowerCase();
+  const ICOS={mesh:{cube:'▣',sphere:'●',icosphere:'◈',cylinder:'⬭',torus:'◎',torus_knot:'∞',cone:'△',plane:'▬',lathe:'◗',monkey:'☺',default:'▣'},light:'✦',camera:'📷'};
+  $('ol-list').innerHTML=objects
+    .filter(o=>!o.name.startsWith('__')&&o.name.toLowerCase().includes(q))
+    .map(o=>{
+      const ico=o.type==='light'?ICOS.light:o.type==='camera'?ICOS.camera:(ICOS.mesh[o.meshType]||ICOS.mesh.default);
+      return`<div class="ol-row${o.mesh===sel?' sel':''}${!o.visible?' hid':''}" onclick="select(objects.find(x=>x.id===${o.id}).mesh)">
+        <span class="ol-ico">${ico}</span>
+        <span class="ol-nm">${o.name}</span>
+        <button class="ol-vis" onclick="togObjVis(${o.id},event)">${o.visible!==false?'👁':'○'}</button>
+      </div>`;
+    }).join('');
+}
+function togObjVis(id,e){
+  e.stopPropagation();
+  const o=objects.find(x=>x.id===id);if(!o)return;
+  o.visible=!o.visible;o.mesh.visible=o.visible;
+  if(o.light)o.light.visible=o.visible;
+  buildOutliner();
+}
+
+// ── PANE SWITCHING ─────────────────────────────────────────────────────────
+function showPane(name){
+  const panes=['scene','object','material','physics','render','debug'];
+  panes.forEach(p=>{$('pane-'+p).classList.toggle('act',p===name);});
+  document.querySelectorAll('.ptab').forEach((b,i)=>b.classList.toggle('act',panes[i]===name));
+  if(name==='object'||name==='material'||name==='physics')refreshPropsPane();
+  if(name==='debug')refreshDebugStats();
+}
+
+function togPg(hdr){
+  const b=hdr.nextElementSibling;
+  b.classList.toggle('coll');
+  hdr.querySelector('span').textContent=b.classList.contains('coll')?'+':'−';
+}
+
+// ── VIEW & CAMERA ──────────────────────────────────────────────────────────
+function setView(v){
+  closeMenus();
+  const d=orbit.getDistance()||9;
+  const T=orbit.target.clone();
+  switch(v){
+    case 'front':camera.position.set(T.x,T.y,T.z+d);break;
+    case 'back': camera.position.set(T.x,T.y,T.z-d);break;
+    case 'right':camera.position.set(T.x+d,T.y,T.z);break;
+    case 'left': camera.position.set(T.x-d,T.y,T.z);break;
+    case 'top':  camera.position.set(T.x,T.y+d,T.z+.001);break;
+    case 'bottom':camera.position.set(T.x,T.y-d,T.z+.001);break;
+    case 'camera':camera.position.set(6,5,9);orbit.target.set(0,0,0);break;
+  }
+  camera.lookAt(orbit.target);
+  orbit.update();notify('View: '+v);
+}
+
+function focusSel(){
+  closeMenus();if(!sel)return;
+  orbit.target.copy(sel.position);
+  const r=sel.geometry?.boundingSphere?.radius||1;
+  const d=Math.max(r*3.5,2);
+  camera.position.copy(sel.position).add(new THREE.Vector3(d,d*.7,d));
+  orbit.update();
+}
+
+function resetCam(){
+  closeMenus();
+  camera.position.set(6,5,9);orbit.target.set(0,0,0);orbit.update();
+}
+
+function updateCam(){
+  camera.fov=parseFloat($('c-fov').value)||75;
+  camera.near=parseFloat($('c-near').value)||.1;
+  camera.far=parseFloat($('c-far').value)||2000;
+  camera.updateProjectionMatrix();
+}
+
+function togGrid(){closeMenus();showGrid=!showGrid;gridH.visible=showGrid;notify('Grid '+(showGrid?'ON':'OFF'));}
+function togAxes(){closeMenus();showAxes=!showAxes;axesH.visible=showAxes;notify('Axes '+(showAxes?'ON':'OFF'));}
+
+// ── WORLD / RENDER SETTINGS ─────────────────────────────────────────────────
+function updateWorld(){
+  ambLight.color.set($('w-amb').value);
+  ambLight.intensity=parseFloat($('w-ai').value)||.3;
+  scene.background=new THREE.Color($('w-bg').value);
+}
+function updateSun(){
+  const ang=(parseFloat($('w-sang').value)||0)*Math.PI/180;
+  const elv=(parseFloat($('w-selv').value)||0)*Math.PI/180;
+  const d=20;
+  sunLight.position.set(Math.cos(ang)*Math.cos(elv)*d,Math.sin(elv)*d,Math.sin(ang)*Math.cos(elv)*d);
+  sunLight.intensity=parseFloat($('w-sint').value)||1.5;
+  $('v-sang').textContent=Math.round($('w-sang').value)+'°';
+  $('v-selv').textContent=Math.round($('w-selv').value)+'°';
+}
+function updateTone(){
+  const maps={ACES:THREE.ACESFilmicToneMapping,Cineon:THREE.CineonToneMapping,Linear:THREE.LinearToneMapping,Reinhard:THREE.ReinhardToneMapping};
+  renderer.toneMapping=maps[$('w-tone').value]||THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=parseFloat($('w-exp').value)||1;
+}
+function togShadows(){
+  closeMenus();
+  renderer.shadowMap.enabled=$('w-shad').checked;
+  notify('Shadows '+(renderer.shadowMap.enabled?'ON':'OFF'));
+}
+function togFog(){
+  const on=$('w-fog').checked;
+  scene.fog=on?new THREE.FogExp2($('w-bg').value||'#111111',parseFloat($('w-fogd').value)||.02):null;
+  notify('Fog '+(on?'ON':'OFF'));
+}
+function updateFog(){if(scene.fog)scene.fog.density=parseFloat($('w-fogd').value);}
+function setRQ(q){
+  closeMenus();
+  const s={low:1024,med:2048,high:4096}[q]||2048;
+  sunLight.shadow.mapSize.set(s,s);sunLight.shadow.map=null;
+  notify('Render quality: '+q);
+}
+
+// ── RENDER ENGINE ──────────────────────────────────────────────────────────
+function renderFull(){
+  closeMenus();
+  const W=parseInt($('r-w').value)||1920;
+  const H=parseInt($('r-h').value)||1080;
+  const qual=$('r-qual').value;
+  notify('⚡ Rendering '+W+'×'+H+'…');
+  setTimeout(()=>{
+    const offR=new THREE.WebGLRenderer({antialias:qual!=='low',preserveDrawingBuffer:true});
+    offR.setSize(W,H);offR.setPixelRatio(1);
+    offR.shadowMap.enabled=true;offR.shadowMap.type=THREE.PCFSoftShadowMap;
+    offR.physicallyCorrectLights=true;
+    offR.toneMapping=THREE.ACESFilmicToneMapping;
+    offR.toneMappingExposure=parseFloat($('w-exp').value)||1;
+    offR.outputEncoding=THREE.sRGBEncoding;
+    const offCam=camera.clone();offCam.aspect=W/H;offCam.updateProjectionMatrix();
+    offR.render(scene,offCam);
+    renderDataURL=offR.domElement.toDataURL('image/png');
+    offR.dispose();
+    const rc=$('rcanvas');
+    const mW=Math.min(W,window.innerWidth-80),mH=Math.min(H,window.innerHeight-160);
+    const sc=Math.min(mW/W,mH/H);
+    rc.width=Math.round(W*sc);rc.height=Math.round(H*sc);
+    const ctx=rc.getContext('2d');
+    const img=new Image();
+    img.onload=()=>{ctx.drawImage(img,0,0,rc.width,rc.height);};
+    img.src=renderDataURL;
+    $('rmodal').classList.add('open');
+    notify('Render complete! '+W+'×'+H);
+  },50);
+}
+
+function downloadRender(){
+  if(!renderDataURL)return;
+  const a=document.createElement('a');a.href=renderDataURL;
+  a.download='ForgeStudio_Render_'+Date.now()+'.png';a.click();
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function exportOBJ(){
+  closeMenus();
+  let out='# ForgeStudio 3D — OBJ Export\n# '+new Date().toISOString()+'\n\n';
+  let vi=1;
+  objects.forEach(o=>{
+    if(o.type!=='mesh')return;
+    out+=`# Object: ${o.name}\ng ${o.name}\n`;
+    const geo=o.mesh.geometry.clone();
+    geo.applyMatrix4(o.mesh.matrixWorld);
+    const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++)out+=`v ${pos.getX(i).toFixed(4)} ${pos.getY(i).toFixed(4)} ${pos.getZ(i).toFixed(4)}\n`;
+    const idx=geo.index;
+    if(idx){for(let i=0;i<idx.count;i+=3)out+=`f ${idx.getX(i)+vi} ${idx.getX(i+1)+vi} ${idx.getX(i+2)+vi}\n`;}
+    vi+=pos.count;
+  });
+  const blob=new Blob([out],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ForgeStudio_Export.obj';a.click();
+  notify('Exported OBJ!');
+}
+
+function exportScene(){closeMenus();notify('HTML Scene export — use File > Save As from browser');}
+
+function newScene(){
+  closeMenus();
+  objects.forEach(o=>{
+    scene.remove(o.mesh);
+    if(o.light)scene.remove(o.light);
+    if(o.body)try{physWorld.removeBody(o.body);}catch(e){}
+  });
+  objects=[];deselect();buildOutliner();
+  notify('New scene created');
+}
+
+// ── UNDO / REDO ────────────────────────────────────────────────────────────
+function pushUndo(cmd){undoStack.push(cmd);if(undoStack.length>80)undoStack.shift();redoStack=[];}
+function doUndo(){
+  closeMenus();
+  if(!undoStack.length){notify('Nothing to undo');return;}
+  const cmd=undoStack.pop();redoStack.push(cmd);
+  notify('Undo: '+cmd.a);
+}
+function doRedo(){
+  closeMenus();
+  if(!redoStack.length){notify('Nothing to redo');return;}
+  const cmd=redoStack.pop();undoStack.push(cmd);
+  notify('Redo: '+cmd.a);
+}
+// Aliases for menu onclick
+const undo=doUndo, redo=doRedo;
+
+// ── HUD ────────────────────────────────────────────────────────────────────
+function updateHUD(){
+  let verts=0,polys=0;
+  objects.forEach(o=>{
+    if(o.type!=='mesh')return;
+    const g=o.mesh.geometry;
+    if(g.attributes.position)verts+=g.attributes.position.count;
+    if(g.index)polys+=g.index.count/3;
+    else if(g.attributes.position)polys+=g.attributes.position.count/3;
+  });
+  $('hud-verts').textContent=`Verts: ${verts.toLocaleString()} | Polys: ${Math.round(polys).toLocaleString()}`;
+}
+
+// ── GIZMO ──────────────────────────────────────────────────────────────────
+function initGizmo(){
+  const c=$('gizmo');c.width=66;c.height=66;
+}
+function drawGizmo(){
+  const c=$('gizmo'),cx=c.getContext('2d');
+  const W=66,H=66,cx2=W/2,cy2=H/2;
+  cx.clearRect(0,0,W,H);
+  cx.save();
+  cx.beginPath();cx.arc(cx2,cy2,30,0,Math.PI*2);
+  cx.fillStyle='rgba(20,20,20,.55)';cx.fill();
+
+  const axes=[
+    {v:new THREE.Vector3(1,0,0),c:'#e05555',l:'X'},
+    {v:new THREE.Vector3(0,1,0),c:'#55cc77',l:'Y'},
+    {v:new THREE.Vector3(0,0,1),c:'#5588ff',l:'Z'},
+  ];
+  const proj=v=>{
+    const r=camera.quaternion.clone().invert();
+    const vv=v.clone().applyQuaternion(r);
+    return{x:cx2+vv.x*22,y:cy2-vv.y*22,z:vv.z};
+  };
+  axes.sort((a,b)=>proj(a.v).z-proj(b.v).z).forEach(ax=>{
+    const p=proj(ax.v),pn=proj(ax.v.clone().negate());
+    cx.strokeStyle=ax.c;cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(cx2,cy2);cx.lineTo(p.x,p.y);cx.stroke();
+    cx.fillStyle=ax.c;cx.beginPath();cx.arc(p.x,p.y,3.5,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,255,255,.7)';cx.font='bold 9px JetBrains Mono';
+    cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(ax.l,p.x,p.y);
+    cx.strokeStyle=ax.c+'55';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(cx2,cy2);cx.lineTo(pn.x,pn.y);cx.stroke();
+  });
+  cx.restore();
+}
+
+// ── RESIZE ─────────────────────────────────────────────────────────────────
+function onResize(){
+  const vp=$('vp');
+  const W=vp.clientWidth,H=vp.clientHeight;
+  camera.aspect=W/H;camera.updateProjectionMatrix();
+  renderer.setSize(W,H);
+}
+
+// ── MENUS ──────────────────────────────────────────────────────────────────
+function openMenu(name){
+  const was=$('drop-'+name).classList.contains('vis');
+  closeMenus();
+  if(!was){$('drop-'+name).classList.add('vis');$('m-'+name).classList.add('open');}
+}
+function closeMenus(){
+  document.querySelectorAll('.drop').forEach(d=>d.classList.remove('vis'));
+  document.querySelectorAll('.mnu').forEach(m=>m.classList.remove('open'));
+}
+
+function showCtx(x,y){
+  const c=$('ctx');c.style.display='block';
+  const cx=Math.min(x,window.innerWidth-180),cy=Math.min(y,window.innerHeight-420);
+  c.style.left=cx+'px';c.style.top=cy+'px';
+}
+
+// ── NOTIFICATION ────────────────────────────────────────────────────────────
+let notifT;
+function notify(msg,dur=2200){
+  if(!msg)return;
+  const el=$('notif');el.textContent=msg;el.style.display='block';
+  clearTimeout(notifT);notifT=setTimeout(()=>el.style.display='none',dur);
+}
+
+// ── START ──────────────────────────────────────────────────────────────────
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
